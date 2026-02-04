@@ -32,8 +32,21 @@ The Instagram Carousel Generator is a Lightroom Classic plugin that helps photog
 6. Click `Add` button
 7. Navigate to and select the `InstagramCarouselGenerator.lrplugin` folder
 8. Click `Done`
+9. **Verify ImageMagick Status**: In the Plugin Manager, check the "ImageMagick Status" section to ensure it shows "✓ Installed" (green) for seamless carousel functionality
 
 ## Usage
+
+### Checking ImageMagick Installation
+
+Before using seamless carousel mode, verify ImageMagick is installed:
+
+1. Go to `File > Plug-in Manager`
+2. Select `Instagram Carousel Generator`
+3. Check the **ImageMagick Status** section:
+   - **✓ Installed** (green) - Ready to split panoramas
+   - **✗ Not Installed** (red) - Follow the installation instructions shown
+
+### Exporting Photos
 
 1. Select the photos you want to export for Instagram in the Library module
 2. Go to `File > Export` (or press `Cmd+Shift+E` / `Ctrl+Shift+E`)

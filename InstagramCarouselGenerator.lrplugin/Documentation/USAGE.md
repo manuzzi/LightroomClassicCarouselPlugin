@@ -4,6 +4,36 @@
 
 The Instagram Carousel Generator plugin now supports advanced image splitting and formatting for Instagram carousel posts. This document provides examples of how to use the new features.
 
+## Verifying ImageMagick Installation
+
+**IMPORTANT:** Before using seamless carousel mode, verify ImageMagick is installed:
+
+1. Open Lightroom Classic
+2. Go to `File > Plug-in Manager`
+3. Select `Instagram Carousel Generator` from the list
+4. Look for the **ImageMagick Status** section
+5. Check the status:
+   - **✓ Installed** (green text) - You're ready to use seamless carousel mode!
+   - **✗ Not Installed** (red text) - Follow the installation instructions shown below the status
+
+### If ImageMagick is Not Installed
+
+The Plugin Manager will show platform-specific instructions:
+
+**For macOS:**
+```bash
+brew install imagemagick
+```
+Or download from https://imagemagick.org, then restart Lightroom.
+
+**For Windows:**
+1. Download from https://imagemagick.org
+2. Run the installer
+3. **Important:** Check "Add to PATH" during installation
+4. Restart Lightroom
+
+After installation, return to the Plugin Manager to verify the status shows "✓ Installed" (green).
+
 ## Basic Export Workflow
 
 ### 1. Standard Square Export (1:1)
@@ -169,7 +199,38 @@ If ImageMagick is not installed:
 
 ### Problem: Images not splitting
 
-**Solution:** Install ImageMagick (see Requirements section)
+**Step 1: Check ImageMagick Status**
+1. Go to `File > Plug-in Manager`
+2. Select `Instagram Carousel Generator`
+3. Check the "ImageMagick Status" section
+
+**If status shows "✗ Not Installed" (red):**
+- Follow the platform-specific installation instructions shown in the Plugin Manager
+- After installation, restart Lightroom
+- Return to Plugin Manager to verify status is now "✓ Installed" (green)
+
+**If status shows "✓ Installed" (green) but still not splitting:**
+- Check Lightroom's plugin log for error messages
+- Ensure the source image is wide enough to create multiple tiles
+- Try exporting a single test image first
+
+### Problem: "ImageMagick may not be installed" error
+
+**Diagnosis:**
+1. Open Plugin Manager (File > Plug-in Manager)
+2. Select "Instagram Carousel Generator"
+3. Check "ImageMagick Status" section
+
+**If Red (Not Installed):**
+- ImageMagick is not detected on your system
+- Follow installation instructions in the Plugin Manager
+- Restart Lightroom after installation
+
+**If Green (Installed) but still getting error:**
+- This is unusual - ImageMagick detection succeeded but execution failed
+- Try reinstalling ImageMagick
+- Ensure ImageMagick is in your system PATH
+- Contact support with plugin log details
 
 ### Problem: Wrong number of tiles created
 
