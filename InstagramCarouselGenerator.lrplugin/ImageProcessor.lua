@@ -196,7 +196,7 @@ function ImageProcessor.getImageDimensions(imagePath)
         return nil
     end)
     
-    if success and result and result.width and result.height then
+    if success and result and type(result) == "table" and result.width and result.height then
         logger:info(string.format("Image dimensions: %dx%d", result.width, result.height))
         return result.width, result.height
     end
