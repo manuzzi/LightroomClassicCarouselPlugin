@@ -331,7 +331,7 @@ function ImageProcessor.splitWithImageMagick(sourcePath, outputDir, tileWidth, t
     local nameWithoutExt = LrPathUtils.removeExtension(baseName)
     
     -- Get the ImageMagick command (magick or convert depending on version)
-    local magickCmd = getImageMagickCommand("convert")
+    local imageMagickBaseCmd = getImageMagickCommand("convert")
     
     -- Calculate total width for all tiles
     local totalWidth = tileWidth * numTiles
@@ -392,7 +392,7 @@ function ImageProcessor.splitWithImageMagick(sourcePath, outputDir, tileWidth, t
         else
             command = string.format(
                 '%s %s -resize x%d -background "%s" -gravity center -extent %dx%d%s -crop %dx%d +repage +adjoin %s',
-                magickCmd,
+                imageMagickBaseCmd,
                 escapeShellArg(sourcePath),
                 tileHeight,
                 bgColor,
@@ -420,7 +420,7 @@ function ImageProcessor.splitWithImageMagick(sourcePath, outputDir, tileWidth, t
         else
             command = string.format(
                 '%s %s -resize x%d -gravity center -crop %dx%d+0+0 +repage -crop %dx%d +repage +adjoin %s',
-                magickCmd,
+                imageMagickBaseCmd,
                 escapeShellArg(sourcePath),
                 tileHeight,
                 totalWidth,
@@ -444,8 +444,18 @@ function ImageProcessor.splitWithImageMagick(sourcePath, outputDir, tileWidth, t
             commandOutput = output or ""
             local exitCode = handle:close()
             logger:info("ImageMagick output: " .. tostring(output))
-            -- In Lua, handle:close() returns true on success, or nil followed by error info on failure
-            return exitCode == true or exitCode == 0 or (output and output == "")
+            -- In Lua, handle:close() returns true on success, or nil/false followed by error info on failure
+            -- exitCode == true means success on some Lua versions
+            -- exitCode == 0 means success when exitCode is a number
+            if exitCode == true or exitCode == 0 then
+                return true
+            end
+            -- If there's no output (empty string), it might still be success
+            -- as ImageMagick doesn't always output text on success
+            if output == nil or output == "" then
+                return true
+            end
+            return false
         end
         return false
     end)
