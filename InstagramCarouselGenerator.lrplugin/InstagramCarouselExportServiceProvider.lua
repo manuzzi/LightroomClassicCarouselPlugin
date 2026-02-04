@@ -335,7 +335,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 spacing = f:control_spacing(),
                 
                 f:static_text {
-                    title = "Background:",
+                    title = "Band Color:",
                     alignment = 'right',
                     width = share 'label_width',
                 },
@@ -374,7 +374,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 f:spacer { width = 20 },
                 
                 f:static_text {
-                    title = "Size:",
+                    title = "Frame Size:",
                 },
                 
                 f:edit_field {
