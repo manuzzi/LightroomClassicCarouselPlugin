@@ -16,6 +16,7 @@ local LrDialogs = import 'LrDialogs'
 local LrFunctionContext = import 'LrFunctionContext'
 local LrPrefs = import 'LrPrefs'
 local LrBinding = import 'LrBinding'
+local LrPathUtils = import 'LrPathUtils'
 
 local pluginInfoProvider = {}
 
@@ -210,9 +211,20 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
         prefs.logLevel = "info"  -- Default
     end
     
+    -- Get the plugin logo path
+    local pluginPath = LrPathUtils.child(_PLUGIN.path, "ManuzziPhotoLogo.png")
+    
     return {
         {
             title = "Instagram Carousel Generator",
+            
+            f:picture {
+                value = pluginPath,
+                width = 256,
+                height = 256,
+            },
+            
+            f:spacer { height = 10 },
             
             f:static_text {
                 title = "Instagram Carousel Generator helps you create seamless carousel posts for Instagram directly from Adobe Lightroom Classic.\n\nNew features: Aspect ratio presets, image splitting for panoramas, customizable bands and frames.",
@@ -224,7 +236,7 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             f:spacer { height = 10 },
             
             f:static_text {
-                title = "Version 1.2.7",
+                title = "Version 1.3.0",
                 font = '<system/bold>',
             },
             
@@ -241,6 +253,131 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
                     fill_horizontal = 1,
                     mouse_down = function()
                         LrHttp.openUrlInBrowser("https://github.com/manuzzi/LightroomClassicCarouselPlugin")
+                    end,
+                },
+            },
+        },
+        
+        {
+            title = "Credits & Support",
+            
+            f:row {
+                f:static_text {
+                    title = "Developed by:",
+                    width = 80,
+                },
+                
+                f:static_text {
+                    title = "Marco Manuzzi",
+                    font = '<system/bold>',
+                },
+            },
+            
+            f:row {
+                f:static_text {
+                    title = "Email:",
+                    width = 80,
+                },
+                
+                f:static_text {
+                    title = "marco@manuzzi.photo",
+                    text_color = LrColor("blue"),
+                    mouse_down = function()
+                        LrHttp.openUrlInBrowser("mailto:marco@manuzzi.photo")
+                    end,
+                },
+            },
+            
+            f:row {
+                f:static_text {
+                    title = "Website:",
+                    width = 80,
+                },
+                
+                f:static_text {
+                    title = "https://www.manuzzi.photo",
+                    text_color = LrColor("blue"),
+                    mouse_down = function()
+                        LrHttp.openUrlInBrowser("https://www.manuzzi.photo")
+                    end,
+                },
+            },
+            
+            f:spacer { height = 10 },
+            
+            f:static_text {
+                title = "If you find this plugin useful, please consider supporting its development:",
+                fill_horizontal = 1,
+                width_in_chars = 50,
+            },
+            
+            f:spacer { height = 5 },
+            
+            f:row {
+                f:static_text {
+                    title = "PayPal:",
+                    width = 80,
+                },
+                
+                f:static_text {
+                    title = "Donate via PayPal",
+                    text_color = LrColor("blue"),
+                    font = '<system/bold>',
+                    mouse_down = function()
+                        LrHttp.openUrlInBrowser("https://paypal.me/MarcoManuzzi50?locale.x=it_IT&country.x=IT")
+                    end,
+                },
+            },
+            
+            f:spacer { height = 10 },
+            
+            f:row {
+                f:static_text {
+                    title = "License:",
+                    width = 80,
+                },
+                
+                f:static_text {
+                    title = "MIT License - Copyright (c) 2026 Marco Manuzzi",
+                },
+            },
+            
+            f:spacer { height = 10 },
+            
+            f:static_text {
+                title = "This plugin uses ImageMagick® for image processing:",
+                fill_horizontal = 1,
+                width_in_chars = 50,
+            },
+            
+            f:spacer { height = 5 },
+            
+            f:row {
+                f:static_text {
+                    title = "ImageMagick:",
+                    width = 80,
+                },
+                
+                f:static_text {
+                    title = "https://imagemagick.org",
+                    text_color = LrColor("blue"),
+                    mouse_down = function()
+                        LrHttp.openUrlInBrowser("https://imagemagick.org")
+                    end,
+                },
+            },
+            
+            f:row {
+                f:static_text {
+                    title = "",  -- Empty label for alignment with ImageMagick row above
+                    width = 80,
+                },
+                
+                f:static_text {
+                    title = "License: Apache 2.0 License",
+                    text_color = LrColor("blue"),
+                    mouse_down = function()
+                        LrHttp.openUrlInBrowser("https://imagemagick.org/script/license.php")
                     end,
                 },
             },
