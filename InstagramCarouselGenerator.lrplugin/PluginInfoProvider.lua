@@ -39,6 +39,32 @@ local function findImageMagickOnMac()
         ""                       -- Empty string = rely on PATH
     }
     
+    -- First try to find 'magick' command (ImageMagick v7+)
+    for _, basePath in ipairs(commonPaths) do
+        local magickCmd
+        if basePath ~= "" then
+            magickCmd = basePath .. "/magick"
+        else
+            magickCmd = "magick"
+        end
+        
+        -- Check if the magick command exists and works
+        -- Note: 2>/dev/null is Unix shell syntax (safe since this function is only called on macOS)
+        local command = magickCmd .. " -version 2>/dev/null"
+        local handle = io.popen(command)
+        if handle then
+            local output = handle:read("*a")
+            handle:close()
+            
+            if output and (string.find(output, "ImageMagick") or string.find(output, "Version")) then
+                -- Extract version if possible
+                local version = output:match("Version: ImageMagick ([%d%.%-]+)")
+                return true, version, basePath
+            end
+        end
+    end
+    
+    -- Fallback: try to find 'convert' command (older ImageMagick or legacy symlink)
     for _, basePath in ipairs(commonPaths) do
         local convertCmd
         if basePath ~= "" then
@@ -48,7 +74,6 @@ local function findImageMagickOnMac()
         end
         
         -- Check if the convert command exists and works
-        -- Note: 2>/dev/null is Unix shell syntax (safe since this function is only called on macOS)
         local command = convertCmd .. " -version 2>/dev/null"
         local handle = io.popen(command)
         if handle then

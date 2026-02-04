@@ -37,6 +37,7 @@ local WIN_ENV = isWindows()
 -- when launched from Lightroom. We search common installation locations.
 
 local imageMagickPath = nil  -- Cache the found path
+local imageMagickCmd = nil   -- Cache the command name (magick or convert)
 
 local function findImageMagickOnMac()
     -- Common paths where ImageMagick might be installed on macOS
@@ -48,6 +49,37 @@ local function findImageMagickOnMac()
         ""                       -- Empty string = rely on PATH
     }
     
+    -- First try to find 'magick' command (ImageMagick v7+)
+    for _, basePath in ipairs(commonPaths) do
+        local magickCmd
+        if basePath ~= "" then
+            magickCmd = basePath .. "/magick"
+        else
+            magickCmd = "magick"
+        end
+        
+        -- Check if the magick command exists and works
+        local success, result = LrTasks.pcall(function()
+            local command = magickCmd .. " -version 2>/dev/null"
+            local handle = io.popen(command)
+            if handle then
+                local output = handle:read("*a")
+                handle:close()
+                
+                if output and (string.find(output, "ImageMagick") or string.find(output, "Version")) then
+                    return true
+                end
+            end
+            return false
+        end)
+        
+        if success and result then
+            logger:info("Found ImageMagick 'magick' at: " .. (basePath ~= "" and basePath or "system PATH"))
+            return basePath, "magick"
+        end
+    end
+    
+    -- Fallback: try to find 'convert' command (older ImageMagick or legacy symlink)
     for _, basePath in ipairs(commonPaths) do
         local convertCmd
         if basePath ~= "" then
@@ -72,40 +104,55 @@ local function findImageMagickOnMac()
         end)
         
         if success and result then
-            logger:info("Found ImageMagick at: " .. (basePath ~= "" and basePath or "system PATH"))
-            return basePath
+            logger:info("Found ImageMagick 'convert' at: " .. (basePath ~= "" and basePath or "system PATH"))
+            return basePath, "convert"
         end
     end
     
-    return nil
+    return nil, nil
 end
 
 local function getImageMagickCommand(commandName)
-    -- For Windows, use 'magick' command
+    -- For Windows, use 'magick' command (ImageMagick v7+)
     if WIN_ENV then
+        if commandName == "convert" or commandName == "identify" then
+            -- On Windows with ImageMagick v7, use 'magick' for all operations
+            return "magick"
+        end
         return "magick"
     end
     
     -- For macOS/Unix, find the ImageMagick path if not already cached
     -- imageMagickPath states: nil = not checked, false = checked and not found, string = found path
     if imageMagickPath == nil then
-        imageMagickPath = findImageMagickOnMac() or false
+        local path, cmd = findImageMagickOnMac()
+        imageMagickPath = path or false
+        imageMagickCmd = cmd or "convert"
+    end
+    
+    -- Determine which command to use
+    local actualCmd
+    if imageMagickCmd == "magick" then
+        -- Using modern ImageMagick v7 - 'magick' command handles everything
+        actualCmd = "magick"
+    else
+        -- Using older ImageMagick or 'convert' command
+        actualCmd = commandName
     end
     
     if imageMagickPath and imageMagickPath ~= "" then
-        return imageMagickPath .. "/" .. commandName
+        return imageMagickPath .. "/" .. actualCmd
     else
         -- Not found or found in system PATH - use command name directly
-        return commandName
+        return actualCmd
     end
 end
 
 --------------------------------------------------------------------------------
 -- Constants
 
-local TILE_NAME_PATTERN = "tile_%d.jpg"
-local TILE_NAME_PATTERN_WIN = "tile_%d.jpg"
-local TILE_NAME_PATTERN_UNIX = "tile_%%d.jpg"
+-- Output tile name pattern - uses zero-padded two-digit numbering (00, 01, 02, ...)
+local TILE_NAME_PATTERN = "tile_%02d.jpg"
 
 --------------------------------------------------------------------------------
 -- Helper function to escape shell arguments
@@ -283,7 +330,19 @@ function ImageProcessor.splitWithImageMagick(sourcePath, outputDir, tileWidth, t
     local baseName = LrPathUtils.leafName(sourcePath)
     local nameWithoutExt = LrPathUtils.removeExtension(baseName)
     
+    -- Get the ImageMagick command (magick or convert depending on version)
+    local magickCmd = getImageMagickCommand("convert")
+    
+    -- Calculate total width for all tiles
+    local totalWidth = tileWidth * numTiles
+    
+    -- Build the output path pattern
+    -- Using tile_%02d.jpg format for zero-padded numbering
+    local outputPattern = LrPathUtils.child(outputDir, "tile_%02d.jpg")
+    
     -- Construct ImageMagick command for splitting
+    -- Based on the working command:
+    -- magick input.jpg -resize x{height} -gravity center -crop {totalWidth}x{height}+0+0 +repage -crop {tileWidth}x{height} +repage +adjoin tiles_%02d.jpg
     local command
     
     if params.overflowHandling == 'addBands' then
@@ -311,53 +370,64 @@ function ImageProcessor.splitWithImageMagick(sourcePath, outputDir, tileWidth, t
             frameOpts = string.format(' -bordercolor "%s" -border %d', frameColor, frameSize)
         end
         
-        -- Build command to add bands and split
+        -- Build command to resize, add bands, and split
+        -- The sequence:
+        -- 1. Resize to target height (maintaining aspect ratio)
+        -- 2. Set background color and use -extent to add bands if needed
+        -- 3. Crop to exact total width
+        -- 4. Split into tiles
         if WIN_ENV then
             command = string.format(
-                'magick %s -background "%s" -gravity center -extent %dx%d%s -crop %dx%d +repage %s',
+                'magick %s -resize x%d -background "%s" -gravity center -extent %dx%d%s -crop %dx%d +repage +adjoin %s',
                 escapeShellArg(sourcePath),
+                tileHeight,
                 bgColor,
-                tileWidth * numTiles,
+                totalWidth,
                 tileHeight,
                 frameOpts,
                 tileWidth,
                 tileHeight,
-                escapeShellArg(LrPathUtils.child(outputDir, TILE_NAME_PATTERN_WIN))
+                escapeShellArg(outputPattern)
             )
         else
-            local convertCmd = getImageMagickCommand("convert")
             command = string.format(
-                '%s %s -background "%s" -gravity center -extent %dx%d%s -crop %dx%d +repage %s',
-                convertCmd,
+                '%s %s -resize x%d -background "%s" -gravity center -extent %dx%d%s -crop %dx%d +repage +adjoin %s',
+                magickCmd,
                 escapeShellArg(sourcePath),
+                tileHeight,
                 bgColor,
-                tileWidth * numTiles,
+                totalWidth,
                 tileHeight,
                 frameOpts,
                 tileWidth,
                 tileHeight,
-                escapeShellArg(LrPathUtils.child(outputDir, TILE_NAME_PATTERN_UNIX))
+                escapeShellArg(outputPattern)
             )
         end
     else
-        -- Crop mode
+        -- Crop mode - resize to height, crop to exact width, then split
         if WIN_ENV then
             command = string.format(
-                'magick %s -crop %dx%d +repage %s',
+                'magick %s -resize x%d -gravity center -crop %dx%d+0+0 +repage -crop %dx%d +repage +adjoin %s',
                 escapeShellArg(sourcePath),
+                tileHeight,
+                totalWidth,
+                tileHeight,
                 tileWidth,
                 tileHeight,
-                escapeShellArg(LrPathUtils.child(outputDir, TILE_NAME_PATTERN_WIN))
+                escapeShellArg(outputPattern)
             )
         else
-            local convertCmd = getImageMagickCommand("convert")
             command = string.format(
-                '%s %s -crop %dx%d +repage %s',
-                convertCmd,
+                '%s %s -resize x%d -gravity center -crop %dx%d+0+0 +repage -crop %dx%d +repage +adjoin %s',
+                magickCmd,
                 escapeShellArg(sourcePath),
+                tileHeight,
+                totalWidth,
+                tileHeight,
                 tileWidth,
                 tileHeight,
-                escapeShellArg(LrPathUtils.child(outputDir, TILE_NAME_PATTERN_UNIX))
+                escapeShellArg(outputPattern)
             )
         end
     end
@@ -365,21 +435,29 @@ function ImageProcessor.splitWithImageMagick(sourcePath, outputDir, tileWidth, t
     logger:info("Executing ImageMagick command:")
     logger:info(command)
     
-    -- Execute the command
+    -- Execute the command and capture both output and error
+    local commandOutput = ""
     local success, result = LrTasks.pcall(function()
         local handle = io.popen(command .. " 2>&1")
         if handle then
             local output = handle:read("*a")
+            commandOutput = output or ""
             local exitCode = handle:close()
             logger:info("ImageMagick output: " .. tostring(output))
-            return exitCode == true or exitCode == 0
+            -- In Lua, handle:close() returns true on success, or nil followed by error info on failure
+            return exitCode == true or exitCode == 0 or (output and output == "")
         end
         return false
     end)
     
-    if not success or not result then
-        logger:error("Failed to execute ImageMagick command")
-        return false, "ImageMagick execution failed"
+    if not success then
+        logger:error("Failed to execute ImageMagick command: pcall failed")
+        return false, "ImageMagick execution failed: " .. tostring(commandOutput)
+    end
+    
+    if not result then
+        logger:error("ImageMagick command returned error: " .. commandOutput)
+        return false, "ImageMagick error: " .. (commandOutput ~= "" and commandOutput or "Unknown error")
     end
     
     return true
