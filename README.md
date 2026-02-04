@@ -110,6 +110,12 @@ This plugin is built using the Adobe Lightroom SDK and written in Lua.
 
 Contributions are welcome! Please feel free to submit issues or pull requests.
 
+## Donation
+
+[Support the project on PayPal](https://paypal.me/MarcoManuzzi50?locale.x=it_IT&country.x=IT)
+
+If this plugin saves you time or helps your workflow, a small donation is greatly appreciated.
+
 ## License
 
 See the [LICENSE](LICENSE) file for details.
