@@ -87,16 +87,16 @@ local function getImageMagickCommand(commandName)
     end
     
     -- For macOS/Unix, find the ImageMagick path if not already cached
+    -- imageMagickPath states: nil = not checked, false = checked and not found, string = found path
     if imageMagickPath == nil then
-        imageMagickPath = findImageMagickOnMac() or false  -- Use false to indicate "not found but checked"
+        imageMagickPath = findImageMagickOnMac() or false
     end
     
     if imageMagickPath and imageMagickPath ~= "" then
         return imageMagickPath .. "/" .. commandName
-    elseif imageMagickPath == "" then
-        return commandName  -- Use system PATH
     else
-        return commandName  -- Not found, try anyway
+        -- Not found or found in system PATH - use command name directly
+        return commandName
     end
 end
 

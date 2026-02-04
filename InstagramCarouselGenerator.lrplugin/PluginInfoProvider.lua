@@ -48,6 +48,7 @@ local function findImageMagickOnMac()
         end
         
         -- Check if the convert command exists and works
+        -- Note: 2>/dev/null is Unix shell syntax (safe since this function is only called on macOS)
         local command = convertCmd .. " -version 2>/dev/null"
         local handle = io.popen(command)
         if handle then
@@ -183,7 +184,7 @@ end
 function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
     -- Check ImageMagick status
     local imageMagickInstalled, imageMagickVersion, imageMagickPath = checkImageMagick()
-    local isWin = isWindows()
+    local isWindowsPlatform = isWindows()
     
     return {
         {
@@ -268,12 +269,12 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
                 height_in_lines = 2,
             } or f:static_text {
                 title = "ImageMagick is required for splitting panoramic images into carousel tiles.\n\n" ..
-                        (isWin and 
+                        (isWindowsPlatform and 
                          "To install:\n1. Download from https://imagemagick.org\n2. Run the installer\n3. Make sure to check 'Add to PATH' during installation\n4. Restart Lightroom" or
                          "To install:\n1. Using Homebrew: brew install imagemagick\n2. Or download from https://imagemagick.org\n3. Restart Lightroom after installation"),
                 fill_horizontal = 1,
                 width_in_chars = 50,
-                height_in_lines = isWin and 6 or 5,
+                height_in_lines = isWindowsPlatform and 6 or 5,
             },
             
             f:spacer { height = 10 },
