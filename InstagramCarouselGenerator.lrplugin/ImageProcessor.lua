@@ -20,6 +20,13 @@ logger:enable("print")
 local ImageProcessor = {}
 
 --------------------------------------------------------------------------------
+-- Constants
+
+local TILE_NAME_PATTERN = "tile_%d.jpg"
+local TILE_NAME_PATTERN_WIN = "tile_%d.jpg"
+local TILE_NAME_PATTERN_UNIX = "tile_%%d.jpg"
+
+--------------------------------------------------------------------------------
 -- Helper function to get image dimensions from file
 -- This uses external tools if available, or returns nil
 
@@ -111,7 +118,7 @@ function ImageProcessor.splitImageIntoTiles(sourcePath, outputDir, tileWidth, ti
     if success then
         -- Collect generated tile paths
         for i = 0, numTiles - 1 do
-            local tilePath = LrPathUtils.child(outputDir, string.format("tile_%d.jpg", i))
+            local tilePath = LrPathUtils.child(outputDir, string.format(TILE_NAME_PATTERN, i))
             if LrFileUtils.exists(tilePath) then
                 table.insert(tiles, tilePath)
             end
@@ -160,7 +167,7 @@ function ImageProcessor.splitWithImageMagick(sourcePath, outputDir, tileWidth, t
                 frameOpts,
                 tileWidth,
                 tileHeight,
-                LrPathUtils.child(outputDir, "tile_%d.jpg")
+                LrPathUtils.child(outputDir, TILE_NAME_PATTERN_WIN)
             )
         else
             command = string.format(
@@ -172,7 +179,7 @@ function ImageProcessor.splitWithImageMagick(sourcePath, outputDir, tileWidth, t
                 frameOpts,
                 tileWidth,
                 tileHeight,
-                LrPathUtils.child(outputDir, "tile_%%d.jpg")
+                LrPathUtils.child(outputDir, TILE_NAME_PATTERN_UNIX)
             )
         end
     else
@@ -183,7 +190,7 @@ function ImageProcessor.splitWithImageMagick(sourcePath, outputDir, tileWidth, t
                 sourcePath,
                 tileWidth,
                 tileHeight,
-                LrPathUtils.child(outputDir, "tile_%d.jpg")
+                LrPathUtils.child(outputDir, TILE_NAME_PATTERN_WIN)
             )
         else
             command = string.format(
@@ -191,7 +198,7 @@ function ImageProcessor.splitWithImageMagick(sourcePath, outputDir, tileWidth, t
                 sourcePath,
                 tileWidth,
                 tileHeight,
-                LrPathUtils.child(outputDir, "tile_%%d.jpg")
+                LrPathUtils.child(outputDir, TILE_NAME_PATTERN_UNIX)
             )
         end
     end

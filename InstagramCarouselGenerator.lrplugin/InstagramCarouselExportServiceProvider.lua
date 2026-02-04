@@ -279,7 +279,7 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
     local ImageProcessor = require 'ImageProcessor'
     
     logger:info("Processing rendered photos for Instagram carousel")
-    logger:info(string.format("Frame size: %dx%d", exportParams.carouselWidth, exportParams.carouselHeight))
+    logger:info(string.format("Tile size: %dx%d", exportParams.carouselWidth, exportParams.carouselHeight))
     logger:info(string.format("Seamless mode: %s", tostring(exportParams.seamlessMode)))
     logger:info(string.format("Aspect ratio: %s", exportParams.aspectRatio))
     logger:info(string.format("Overflow handling: %s", exportParams.overflowHandling))
