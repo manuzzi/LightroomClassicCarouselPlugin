@@ -21,16 +21,16 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             title = "Instagram Carousel Generator",
             
             f:static_text {
-                title = "Instagram Carousel Generator helps you create seamless carousel posts for Instagram directly from Adobe Lightroom Classic.",
+                title = "Instagram Carousel Generator helps you create seamless carousel posts for Instagram directly from Adobe Lightroom Classic.\n\nNew features: Aspect ratio presets, image splitting for panoramas, customizable bands and frames.",
                 fill_horizontal = 1,
                 width_in_chars = 50,
-                height_in_lines = 3,
+                height_in_lines = 4,
             },
             
             f:spacer { height = 10 },
             
             f:static_text {
-                title = "Version 1.0.0",
+                title = "Version 1.1.0",
                 font = '<system/bold>',
             },
             
