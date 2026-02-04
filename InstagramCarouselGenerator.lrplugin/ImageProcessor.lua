@@ -39,6 +39,73 @@ local TILE_NAME_PATTERN_WIN = "tile_%d.jpg"
 local TILE_NAME_PATTERN_UNIX = "tile_%%d.jpg"
 
 --------------------------------------------------------------------------------
+-- Bundled ImageMagick binary path (cached)
+
+local cachedMagickPath = nil
+
+--------------------------------------------------------------------------------
+-- Get the path to the bundled ImageMagick binary
+
+local function getBundledMagickPath()
+    -- Cache the result to avoid repeated file system checks
+    if cachedMagickPath ~= nil then
+        return cachedMagickPath
+    end
+    
+    -- Get the plugin's directory path using _PLUGIN global
+    local pluginPath = _PLUGIN.path
+    if not pluginPath then
+        logger:warn("Could not determine plugin path")
+        cachedMagickPath = false
+        return false
+    end
+    
+    local binPath
+    local magickBinary
+    
+    if WIN_ENV then
+        binPath = LrPathUtils.child(pluginPath, "bin")
+        binPath = LrPathUtils.child(binPath, "win")
+        magickBinary = LrPathUtils.child(binPath, "magick.exe")
+    else
+        binPath = LrPathUtils.child(pluginPath, "bin")
+        binPath = LrPathUtils.child(binPath, "mac")
+        magickBinary = LrPathUtils.child(binPath, "magick")
+    end
+    
+    -- Check if the bundled binary exists
+    if LrFileUtils.exists(magickBinary) then
+        logger:info("Found bundled ImageMagick at: " .. magickBinary)
+        cachedMagickPath = magickBinary
+        return magickBinary
+    else
+        logger:info("No bundled ImageMagick found at: " .. magickBinary)
+        cachedMagickPath = false
+        return false
+    end
+end
+
+--------------------------------------------------------------------------------
+-- Get the ImageMagick command (bundled or system)
+
+local function getMagickCommand()
+    -- First, try to use bundled binary
+    local bundledPath = getBundledMagickPath()
+    if bundledPath then
+        return bundledPath
+    end
+    
+    -- Fallback to system PATH
+    if WIN_ENV then
+        return "magick"
+    else
+        -- On macOS, try common Homebrew paths if 'magick' is not in PATH
+        -- This helps when Lightroom doesn't inherit the user's shell PATH
+        return "magick"
+    end
+end
+
+--------------------------------------------------------------------------------
 -- Helper function to escape shell arguments
 
 local function escapeShellArg(arg)
@@ -56,24 +123,67 @@ end
 -- Check if ImageMagick is installed and available
 
 function ImageProcessor.checkImageMagickAvailable()
-    -- Try to run ImageMagick version command
+    -- First, check for bundled binary
+    local bundledPath = getBundledMagickPath()
+    if bundledPath then
+        -- Verify the bundled binary works
+        local success, result = LrTasks.pcall(function()
+            local command = escapeShellArg(bundledPath) .. " -version 2>&1"
+            local handle = io.popen(command)
+            if handle then
+                local output = handle:read("*a")
+                handle:close()
+                if output and string.find(output, "ImageMagick") then
+                    logger:info("Bundled ImageMagick works: " .. output:sub(1, 100))
+                    return true
+                end
+            end
+            return false
+        end)
+        
+        if success and result then
+            return true, bundledPath
+        end
+    end
+    
+    -- Try to run ImageMagick version command from system PATH
     local success, result = LrTasks.pcall(function()
         local command
         if WIN_ENV then
             -- Windows: try 'magick' command
-            command = 'magick -version'
+            command = 'magick -version 2>&1'
         else
-            -- Unix/macOS: try 'convert' command
-            command = 'convert -version 2>/dev/null'
+            -- macOS: try 'magick' command with common Homebrew paths
+            -- Check multiple common locations for macOS
+            local paths = {
+                "/opt/homebrew/bin/magick",  -- Apple Silicon Homebrew
+                "/usr/local/bin/magick",      -- Intel Homebrew
+                "/opt/local/bin/magick",      -- MacPorts
+                "magick"                      -- System PATH
+            }
+            
+            for _, path in ipairs(paths) do
+                local testCommand = path .. " -version 2>&1"
+                local handle = io.popen(testCommand)
+                if handle then
+                    local output = handle:read("*a")
+                    handle:close()
+                    if output and string.find(output, "ImageMagick") then
+                        logger:info("ImageMagick found at: " .. path)
+                        return true, path
+                    end
+                end
+            end
+            return false
         end
         
         local handle = io.popen(command)
         if handle then
             local output = handle:read("*a")
-            local exitCode = handle:close()
+            handle:close()
             
-            -- Check if output contains "ImageMagick" or "Version"
-            if output and (string.find(output, "ImageMagick") or string.find(output, "Version")) then
+            -- Check if output contains "ImageMagick"
+            if output and string.find(output, "ImageMagick") then
                 logger:info("ImageMagick detected: " .. output:sub(1, 100))
                 return true
             end
@@ -90,17 +200,87 @@ function ImageProcessor.checkImageMagickAvailable()
 end
 
 --------------------------------------------------------------------------------
+-- Get the working ImageMagick command path
+
+function ImageProcessor.getWorkingMagickPath()
+    -- First, check for bundled binary
+    local bundledPath = getBundledMagickPath()
+    if bundledPath then
+        -- Verify the bundled binary works
+        local success, _ = LrTasks.pcall(function()
+            local command = escapeShellArg(bundledPath) .. " -version 2>&1"
+            local handle = io.popen(command)
+            if handle then
+                local output = handle:read("*a")
+                handle:close()
+                if output and string.find(output, "ImageMagick") then
+                    return true
+                end
+            end
+            return false
+        end)
+        
+        if success then
+            return bundledPath
+        end
+    end
+    
+    -- Check system paths
+    if WIN_ENV then
+        local handle = io.popen("magick -version 2>&1")
+        if handle then
+            local output = handle:read("*a")
+            handle:close()
+            if output and string.find(output, "ImageMagick") then
+                return "magick"
+            end
+        end
+    else
+        -- macOS: check multiple common locations
+        local paths = {
+            "/opt/homebrew/bin/magick",  -- Apple Silicon Homebrew
+            "/usr/local/bin/magick",      -- Intel Homebrew
+            "/opt/local/bin/magick",      -- MacPorts
+            "magick"                      -- System PATH
+        }
+        
+        for _, path in ipairs(paths) do
+            local testCommand = path .. " -version 2>&1"
+            local handle = io.popen(testCommand)
+            if handle then
+                local output = handle:read("*a")
+                handle:close()
+                if output and string.find(output, "ImageMagick") then
+                    return path
+                end
+            end
+        end
+    end
+    
+    return nil
+end
+
+--------------------------------------------------------------------------------
 -- Helper function to get image dimensions from file
 -- This uses external tools if available, or returns nil
 
 function ImageProcessor.getImageDimensions(imagePath)
-    -- Try to use ImageMagick's identify command if available
+    -- Get the working ImageMagick path
+    local magickPath = ImageProcessor.getWorkingMagickPath()
+    if not magickPath then
+        logger:warn("No working ImageMagick path found for getImageDimensions")
+        return nil, nil
+    end
+    
+    -- Try to use ImageMagick's identify command
     local success, result = LrTasks.pcall(function()
         local command
         if WIN_ENV then
-            command = 'magick identify -format "%w %h" ' .. escapeShellArg(imagePath)
+            -- On Windows, use 'magick identify' syntax
+            command = escapeShellArg(magickPath) .. ' identify -format "%w %h" ' .. escapeShellArg(imagePath) .. ' 2>&1'
         else
-            command = 'identify -format "%w %h" ' .. escapeShellArg(imagePath) .. ' 2>/dev/null'
+            -- On macOS/Unix, use 'magick identify' syntax (ImageMagick 7)
+            command = escapeShellArg(magickPath) .. ' identify -format "%w %h" ' .. escapeShellArg(imagePath) .. ' 2>&1'
         end
         
         local handle = io.popen(command)
@@ -203,6 +383,16 @@ function ImageProcessor.splitWithImageMagick(sourcePath, outputDir, tileWidth, t
     local baseName = LrPathUtils.leafName(sourcePath)
     local nameWithoutExt = LrPathUtils.removeExtension(baseName)
     
+    -- Get the working ImageMagick path
+    local magickPath = ImageProcessor.getWorkingMagickPath()
+    if not magickPath then
+        logger:error("No working ImageMagick path found")
+        return false, "ImageMagick not installed or not in PATH"
+    end
+    
+    -- Escape the magick path for shell use
+    local escapedMagickPath = escapeShellArg(magickPath)
+    
     -- Construct ImageMagick command for splitting
     local command
     
@@ -231,10 +421,11 @@ function ImageProcessor.splitWithImageMagick(sourcePath, outputDir, tileWidth, t
             frameOpts = string.format(' -bordercolor "%s" -border %d', frameColor, frameSize)
         end
         
-        -- Build command to add bands and split
+        -- Build command to add bands and split (using ImageMagick 7 'magick' command)
         if WIN_ENV then
             command = string.format(
-                'magick %s -background "%s" -gravity center -extent %dx%d%s -crop %dx%d +repage %s',
+                '%s %s -background "%s" -gravity center -extent %dx%d%s -crop %dx%d +repage %s',
+                escapedMagickPath,
                 escapeShellArg(sourcePath),
                 bgColor,
                 tileWidth * numTiles,
@@ -246,7 +437,8 @@ function ImageProcessor.splitWithImageMagick(sourcePath, outputDir, tileWidth, t
             )
         else
             command = string.format(
-                'convert %s -background "%s" -gravity center -extent %dx%d%s -crop %dx%d +repage %s',
+                '%s %s -background "%s" -gravity center -extent %dx%d%s -crop %dx%d +repage %s',
+                escapedMagickPath,
                 escapeShellArg(sourcePath),
                 bgColor,
                 tileWidth * numTiles,
@@ -261,7 +453,8 @@ function ImageProcessor.splitWithImageMagick(sourcePath, outputDir, tileWidth, t
         -- Crop mode
         if WIN_ENV then
             command = string.format(
-                'magick %s -crop %dx%d +repage %s',
+                '%s %s -crop %dx%d +repage %s',
+                escapedMagickPath,
                 escapeShellArg(sourcePath),
                 tileWidth,
                 tileHeight,
@@ -269,7 +462,8 @@ function ImageProcessor.splitWithImageMagick(sourcePath, outputDir, tileWidth, t
             )
         else
             command = string.format(
-                'convert %s -crop %dx%d +repage %s',
+                '%s %s -crop %dx%d +repage %s',
+                escapedMagickPath,
                 escapeShellArg(sourcePath),
                 tileWidth,
                 tileHeight,

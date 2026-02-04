@@ -12,21 +12,52 @@ local LrHttp = import 'LrHttp'
 local LrTasks = import 'LrTasks'
 local LrSystemInfo = import 'LrSystemInfo'
 local LrColor = import 'LrColor'
+local LrFileUtils = import 'LrFileUtils'
+local LrPathUtils = import 'LrPathUtils'
 
 local pluginInfoProvider = {}
 
 --------------------------------------------------------------------------------
--- Check ImageMagick availability
+-- Platform detection
 
-local function checkImageMagick()
+local function isWindows()
+    return string.find(string.lower(LrSystemInfo.osVersion()), "windows") ~= nil
+end
+
+--------------------------------------------------------------------------------
+-- Check for bundled ImageMagick binary
+
+local function checkBundledImageMagick()
+    local pluginPath = _PLUGIN.path
+    if not pluginPath then
+        return false, nil
+    end
+    
+    local binPath
+    local magickBinary
+    
+    if isWindows() then
+        binPath = LrPathUtils.child(pluginPath, "bin")
+        binPath = LrPathUtils.child(binPath, "win")
+        magickBinary = LrPathUtils.child(binPath, "magick.exe")
+    else
+        binPath = LrPathUtils.child(pluginPath, "bin")
+        binPath = LrPathUtils.child(binPath, "mac")
+        magickBinary = LrPathUtils.child(binPath, "magick")
+    end
+    
+    -- Check if bundled binary exists
+    if not LrFileUtils.exists(magickBinary) then
+        return false, nil
+    end
+    
+    -- Verify it works
     local success, result = LrTasks.pcall(function()
         local command
-        local isWindows = string.find(string.lower(LrSystemInfo.osVersion()), "windows") ~= nil
-        
-        if isWindows then
-            command = 'magick -version'
+        if isWindows() then
+            command = '"' .. magickBinary .. '" -version 2>&1'
         else
-            command = 'convert -version 2>/dev/null'
+            command = "'" .. magickBinary .. "' -version 2>&1"
         end
         
         local handle = io.popen(command)
@@ -34,8 +65,7 @@ local function checkImageMagick()
             local output = handle:read("*a")
             handle:close()
             
-            if output and (string.find(output, "ImageMagick") or string.find(output, "Version")) then
-                -- Extract version if possible
+            if output and string.find(output, "ImageMagick") then
                 local version = output:match("Version: ImageMagick ([%d%.%-]+)")
                 return true, version
             end
@@ -45,18 +75,69 @@ local function checkImageMagick()
     
     if success and result then
         return result
-    else
-        return false, nil
     end
+    return false, nil
+end
+
+--------------------------------------------------------------------------------
+-- Check for system ImageMagick (with common paths for macOS)
+
+local function checkSystemImageMagick()
+    local success, result = LrTasks.pcall(function()
+        if isWindows() then
+            local handle = io.popen('magick -version 2>&1')
+            if handle then
+                local output = handle:read("*a")
+                handle:close()
+                
+                if output and string.find(output, "ImageMagick") then
+                    local version = output:match("Version: ImageMagick ([%d%.%-]+)")
+                    return true, version, "system PATH"
+                end
+            end
+        else
+            -- macOS: Check multiple common locations
+            local paths = {
+                "/opt/homebrew/bin/magick",  -- Apple Silicon Homebrew
+                "/usr/local/bin/magick",      -- Intel Homebrew
+                "/opt/local/bin/magick",      -- MacPorts
+                "magick"                      -- System PATH
+            }
+            
+            for _, path in ipairs(paths) do
+                local handle = io.popen(path .. " -version 2>&1")
+                if handle then
+                    local output = handle:read("*a")
+                    handle:close()
+                    
+                    if output and string.find(output, "ImageMagick") then
+                        local version = output:match("Version: ImageMagick ([%d%.%-]+)")
+                        return true, version, path
+                    end
+                end
+            end
+        end
+        return false, nil, nil
+    end)
+    
+    if success and result then
+        return result
+    end
+    return false, nil, nil
 end
 
 --------------------------------------------------------------------------------
 -- Section for Top of Plugin Manager Dialog
 
 function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
-    -- Check ImageMagick status
-    local imageMagickInstalled, imageMagickVersion = checkImageMagick()
-    local isWindows = string.find(string.lower(LrSystemInfo.osVersion()), "windows") ~= nil
+    -- Check ImageMagick status (bundled first, then system)
+    local bundledInstalled, bundledVersion = checkBundledImageMagick()
+    local systemInstalled, systemVersion, systemPath = checkSystemImageMagick()
+    
+    local imageMagickInstalled = bundledInstalled or systemInstalled
+    local imageMagickVersion = bundledInstalled and bundledVersion or systemVersion
+    local imageMagickSource = bundledInstalled and "bundled" or (systemInstalled and "system" or nil)
+    local winPlatform = isWindows()
     
     return {
         {
@@ -72,7 +153,7 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             f:spacer { height = 10 },
             
             f:static_text {
-                title = "Version 1.1.0",
+                title = "Version 1.2.0",
                 font = '<system/bold>',
             },
             
@@ -121,6 +202,18 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
                 },
             } or f:column {},
             
+            imageMagickInstalled and f:row {
+                f:static_text {
+                    title = "Source:",
+                    width = 80,
+                },
+                
+                f:static_text {
+                    title = imageMagickSource == "bundled" and "Bundled with plugin" or 
+                           (systemPath and ("System: " .. systemPath) or "System PATH"),
+                },
+            } or f:column {},
+            
             f:spacer { height = 5 },
             
             imageMagickInstalled and f:static_text {
@@ -130,12 +223,14 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
                 height_in_lines = 2,
             } or f:static_text {
                 title = "ImageMagick is required for splitting panoramic images into carousel tiles.\n\n" ..
-                        (isWindows and 
-                         "To install:\n1. Download from https://imagemagick.org\n2. Run the installer\n3. Make sure to check 'Add to PATH' during installation\n4. Restart Lightroom" or
-                         "To install:\n1. Using Homebrew: brew install imagemagick\n2. Or download from https://imagemagick.org\n3. Restart Lightroom after installation"),
+                        "The plugin includes bundled binaries, but they may need to be installed.\n" ..
+                        "Please check the bin/ folder in the plugin directory.\n\n" ..
+                        (winPlatform and 
+                         "Alternative: Install from https://imagemagick.org\nMake sure to check 'Add to PATH' during installation.\nRestart Lightroom after installation." or
+                         "Alternative: Install via Homebrew: brew install imagemagick\nOr download from https://imagemagick.org\nRestart Lightroom after installation."),
                 fill_horizontal = 1,
                 width_in_chars = 50,
-                height_in_lines = isWindows and 6 or 5,
+                height_in_lines = 8,
             },
         },
     }

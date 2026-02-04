@@ -65,13 +65,27 @@ Before using seamless carousel mode, verify ImageMagick is installed:
 5. Configure other export settings as needed (file format, quality, etc.)
 6. Click `Export`
 
-### Requirements
+### ImageMagick Dependency
 
-For seamless carousel mode (image splitting), ImageMagick must be installed:
+For seamless carousel mode (image splitting), ImageMagick is required. The plugin supports two modes:
+
+#### Option 1: Bundled Binaries (Recommended)
+The plugin includes a `bin/` folder where you can place ImageMagick binaries for automatic detection:
+- **macOS**: Place the `magick` binary in `bin/mac/`
+- **Windows**: Place `magick.exe` in `bin/win/`
+
+This eliminates the need for system-wide installation and ensures compatibility.
+
+#### Option 2: System Installation (Fallback)
+If bundled binaries are not present, the plugin will search for ImageMagick in:
+- **macOS**: `/opt/homebrew/bin/magick` (Apple Silicon), `/usr/local/bin/magick` (Intel), system PATH
+- **Windows**: System PATH
+
+To install system-wide:
 - **macOS**: `brew install imagemagick`
-- **Windows**: Download from [https://imagemagick.org](https://imagemagick.org)
+- **Windows**: Download from [https://imagemagick.org](https://imagemagick.org) (check "Add to PATH" during installation)
 
-If ImageMagick is not installed, photos will be exported as single images without splitting.
+If ImageMagick is not available, photos will be exported as single images without splitting.
 
 ## Plugin Structure
 
@@ -80,7 +94,11 @@ InstagramCarouselGenerator.lrplugin/
 ├── Info.lua                                    # Plugin metadata and configuration
 ├── InstagramCarouselGenerator.lua              # Main plugin initialization
 ├── InstagramCarouselExportServiceProvider.lua  # Export service implementation
+├── ImageProcessor.lua                          # Image processing with ImageMagick
 ├── PluginInfoProvider.lua                      # Plugin Manager UI
+├── bin/                                        # Bundled ImageMagick binaries
+│   ├── mac/                                    # macOS binaries (place 'magick' here)
+│   └── win/                                    # Windows binaries (place 'magick.exe' here)
 ├── Documentation/
 │   └── About.txt                               # User documentation
 └── Resources/
