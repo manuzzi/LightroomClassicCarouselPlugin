@@ -26,16 +26,8 @@ end
 
 -- Enable logging based on preference
 local function updateLogLevel()
-    local level = getLogLevel()
-    if level == "debug" then
-        logger:enable("print")  -- Enable all logging
-    elseif level == "info" then
-        logger:enable("print")
-    elseif level == "warn" then
-        logger:enable("print")
-    else
-        logger:enable("print")
-    end
+    -- Always enable logging - filtering is done in the log helper functions
+    logger:enable("print")
 end
 
 updateLogLevel()
