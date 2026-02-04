@@ -187,11 +187,15 @@ end
 -- This function takes a rendered image and splits it into carousel tiles
 -- based on the target tile size and user preferences.
 --
+-- NEW APPROACH (v1.2.2):
+-- 1. Divide the panoramic image into N tiles based on the desired ratio
+-- 2. Resize to the requested actual size
+--
 -- Parameters:
 --   sourcePath: Path to the source image (already rendered by Lightroom)
 --   outputDir: Directory to save the tiles
---   tileWidth: Target width of each tile
---   tileHeight: Target height of each tile
+--   tileWidth: Target width of each tile (final output size)
+--   tileHeight: Target height of each tile (final output size)
 --   params: Table with additional parameters:
 --     - overflowHandling: 'addBands' or 'crop'
 --     - backgroundColor: {r, g, b} values from 0-1
@@ -200,6 +204,7 @@ end
 --     - enableFrame: Boolean to enable frame
 --     - sourceWidth: Width of source image (from Lightroom)
 --     - sourceHeight: Height of source image (from Lightroom)
+--     - numTiles: Pre-calculated number of tiles (based on ratio)
 
 function ImageProcessor.splitImageIntoTiles(sourcePath, outputDir, tileWidth, tileHeight, params)
     logInfo("=== Starting tile split operation ===")
@@ -221,14 +226,17 @@ function ImageProcessor.splitImageIntoTiles(sourcePath, outputDir, tileWidth, ti
     
     logInfo("Source image dimensions: " .. sourceWidth .. "x" .. sourceHeight)
     
-    -- Calculate the number of tiles based on source image width
-    -- The image is already rendered at the correct height by Lightroom
-    local numTiles = math.ceil(sourceWidth / tileWidth)
-    
-    -- Ensure at least 1 tile and maximum 10 (Instagram carousel limit)
-    numTiles = math.max(1, math.min(numTiles, 10))
-    
-    logInfo("Calculated number of tiles: " .. numTiles)
+    -- Use pre-calculated number of tiles if provided, otherwise calculate
+    local numTiles
+    if params.numTiles and params.numTiles > 0 then
+        numTiles = params.numTiles
+        logInfo("Using pre-calculated tile count: " .. numTiles)
+    else
+        -- Fallback: calculate based on tile width
+        numTiles = math.ceil(sourceWidth / tileWidth)
+        numTiles = math.max(1, math.min(numTiles, 10))
+        logInfo("Calculated tile count: " .. numTiles)
+    end
     
     -- Calculate total width needed for all tiles
     local totalWidth = numTiles * tileWidth

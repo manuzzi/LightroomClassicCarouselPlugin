@@ -19,6 +19,7 @@ local LrPathUtils = import 'LrPathUtils'
 local LrApplication = import 'LrApplication'
 local LrSystemInfo = import 'LrSystemInfo'
 local LrPrefs = import 'LrPrefs'
+local LrShell = import 'LrShell'
 
 -- Create a logger for this module
 local logger = LrLogger('InstagramCarouselExportService')
@@ -64,17 +65,29 @@ local exportServiceProvider = {}
 
 -- Plugin-specific properties
 exportServiceProvider.exportPresetFields = {
-    { key = 'carouselWidth', default = 1080 },
-    { key = 'carouselHeight', default = 1080 },
+    -- Tile aspect ratio (determines how tiles are proportioned)
+    { key = 'aspectRatio', default = '4:5' },
+    
+    -- Short side size options
+    { key = 'shortSideSize', default = '1080' },
+    { key = 'customShortSide', default = 1080 },
+    
+    -- Calculated tile dimensions (computed from ratio and short side)
+    { key = 'tileWidth', default = 1080 },
+    { key = 'tileHeight', default = 1350 },
+    
+    -- Seamless mode (split panoramas)
     { key = 'seamlessMode', default = true },
-    { key = 'aspectRatio', default = '1:1' },
-    { key = 'customWidth', default = 1080 },
-    { key = 'customHeight', default = 1080 },
+    
+    -- Overflow handling
     { key = 'overflowHandling', default = 'addBands' },
     { key = 'backgroundColor', default = { r = 1, g = 1, b = 1 } },
     { key = 'frameColor', default = { r = 0, g = 0, b = 0 } },
     { key = 'frameSize', default = 10 },
     { key = 'enableFrame', default = false },
+    
+    -- Open export folder after export
+    { key = 'openExportFolder', default = false },
 }
 
 -- Allow this plugin to export all files
@@ -88,34 +101,80 @@ exportServiceProvider.canExportToTemporaryLocation = true
 exportServiceProvider.exportName = "Instagram Carousel"
 
 --------------------------------------------------------------------------------
+-- Helper function to calculate tile dimensions from ratio and short side
+
+local function calculateTileDimensions(aspectRatio, shortSide)
+    local width, height
+    
+    if aspectRatio == '4:5' then
+        -- Portrait: width is short side, height is longer
+        width = shortSide
+        height = math.floor(shortSide * 5 / 4)
+    elseif aspectRatio == '1:1' then
+        -- Square: both sides equal
+        width = shortSide
+        height = shortSide
+    elseif aspectRatio == '5:4' then
+        -- Landscape: height is short side, width is longer
+        height = shortSide
+        width = math.floor(shortSide * 5 / 4)
+    elseif aspectRatio == '16:9' then
+        -- Wide landscape: height is short side
+        height = shortSide
+        width = math.floor(shortSide * 16 / 9)
+    elseif aspectRatio == '9:16' then
+        -- Vertical: width is short side
+        width = shortSide
+        height = math.floor(shortSide * 16 / 9)
+    else
+        -- Default to 4:5
+        width = shortSide
+        height = math.floor(shortSide * 5 / 4)
+    end
+    
+    return width, height
+end
+
+--------------------------------------------------------------------------------
 -- UI for Export Dialog
 
 function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
     local bind = LrView.bind
     local share = LrView.share
     
-    -- Update carousel dimensions when aspect ratio changes
-    propertyTable:addObserver('aspectRatio', function(propertyTable, key, value)
-        if value == '4:5' then
-            propertyTable.carouselWidth = 1080
-            propertyTable.carouselHeight = 1350
-        elseif value == '1:1' then
-            propertyTable.carouselWidth = 1080
-            propertyTable.carouselHeight = 1080
-        elseif value == '5:4' then
-            propertyTable.carouselWidth = 1350
-            propertyTable.carouselHeight = 1080
-        elseif value == '16:9' then
-            propertyTable.carouselWidth = 1920
-            propertyTable.carouselHeight = 1080
-        elseif value == '9:16' then
-            propertyTable.carouselWidth = 1080
-            propertyTable.carouselHeight = 1920
-        elseif value == 'custom' then
-            propertyTable.carouselWidth = propertyTable.customWidth
-            propertyTable.carouselHeight = propertyTable.customHeight
+    -- Helper to update tile dimensions when ratio or short side changes
+    local function updateTileDimensions()
+        local shortSide
+        if propertyTable.shortSideSize == 'custom' then
+            shortSide = propertyTable.customShortSide
+        else
+            shortSide = tonumber(propertyTable.shortSideSize) or 1080
+        end
+        
+        local width, height = calculateTileDimensions(propertyTable.aspectRatio, shortSide)
+        propertyTable.tileWidth = width
+        propertyTable.tileHeight = height
+    end
+    
+    -- Update dimensions when aspect ratio changes
+    propertyTable:addObserver('aspectRatio', function(props, key, value)
+        updateTileDimensions()
+    end)
+    
+    -- Update dimensions when short side size changes
+    propertyTable:addObserver('shortSideSize', function(props, key, value)
+        updateTileDimensions()
+    end)
+    
+    -- Update dimensions when custom short side changes
+    propertyTable:addObserver('customShortSide', function(props, key, value)
+        if propertyTable.shortSideSize == 'custom' then
+            updateTileDimensions()
         end
     end)
+    
+    -- Initialize tile dimensions
+    updateTileDimensions()
     
     return {
         {
@@ -127,7 +186,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 spacing = f:control_spacing(),
                 
                 f:static_text {
-                    title = "Aspect Ratio:",
+                    title = "Tile Aspect Ratio:",
                     alignment = 'right',
                     width = share 'label_width',
                 },
@@ -140,49 +199,80 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                         { title = "5:4 (Landscape)", value = '5:4' },
                         { title = "16:9 (Wide)", value = '16:9' },
                         { title = "9:16 (Vertical)", value = '9:16' },
+                    },
+                },
+            },
+            
+            -- Short Side Size Selection
+            f:row {
+                spacing = f:control_spacing(),
+                
+                f:static_text {
+                    title = "Short Side Size:",
+                    alignment = 'right',
+                    width = share 'label_width',
+                },
+                
+                f:popup_menu {
+                    value = bind 'shortSideSize',
+                    items = {
+                        { title = "1080 px (Instagram standard)", value = '1080' },
+                        { title = "2160 px (2x)", value = '2160' },
+                        { title = "3240 px (3x)", value = '3240' },
+                        { title = "4320 px (4x)", value = '4320' },
                         { title = "Custom", value = 'custom' },
                     },
                 },
             },
             
-            -- Carousel Size (updates automatically based on ratio)
+            -- Custom Short Side (only visible when custom is selected)
             f:row {
                 spacing = f:control_spacing(),
                 
                 f:static_text {
-                    title = "Frame Size:",
+                    title = "Custom Size:",
                     alignment = 'right',
                     width = share 'label_width',
                 },
                 
                 f:edit_field {
-                    value = bind 'carouselWidth',
+                    value = bind 'customShortSide',
                     width_in_digits = 5,
                     min = 100,
-                    max = 4096,
+                    max = 8640,
                     precision = 0,
-                    enabled = bind 'aspectRatio',
-                    enabled_value = 'custom',
-                },
-                
-                f:static_text {
-                    title = "x",
-                },
-                
-                f:edit_field {
-                    value = bind 'carouselHeight',
-                    width_in_digits = 5,
-                    min = 100,
-                    max = 4096,
-                    precision = 0,
-                    enabled = bind 'aspectRatio',
-                    enabled_value = 'custom',
+                    enabled = LrBinding.keyEquals('shortSideSize', 'custom'),
                 },
                 
                 f:static_text {
                     title = "px",
                 },
             },
+            
+            -- Calculated Tile Size (read-only display)
+            f:row {
+                spacing = f:control_spacing(),
+                
+                f:static_text {
+                    title = "Tile Size:",
+                    alignment = 'right',
+                    width = share 'label_width',
+                },
+                
+                f:static_text {
+                    title = bind {
+                        keys = {'tileWidth', 'tileHeight'},
+                        operation = function(binder, values, fromTable)
+                            return string.format("%d x %d px", 
+                                values.tileWidth or 1080, 
+                                values.tileHeight or 1350)
+                        end,
+                    },
+                    font = '<system/bold>',
+                },
+            },
+            
+            f:spacer { height = 10 },
             
             f:row {
                 f:checkbox {
@@ -244,8 +334,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 
                 f:color_well {
                     value = bind 'backgroundColor',
-                    enabled = bind 'overflowHandling',
-                    enabled_value = 'addBands',
+                    enabled = LrBinding.keyEquals('overflowHandling', 'addBands'),
                 },
             },
             
@@ -255,8 +344,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                     value = bind 'enableFrame',
                     checked_value = true,
                     unchecked_value = false,
-                    enabled = bind 'overflowHandling',
-                    enabled_value = 'addBands',
+                    enabled = LrBinding.keyEquals('overflowHandling', 'addBands'),
                 },
             },
             
@@ -271,8 +359,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 
                 f:color_well {
                     value = bind 'frameColor',
-                    enabled = bind 'enableFrame',
-                    enabled_value = true,
+                    enabled = LrBinding.keyEquals('enableFrame', true),
                 },
             },
             
@@ -291,12 +378,24 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                     min = 1,
                     max = 100,
                     precision = 0,
-                    enabled = bind 'enableFrame',
-                    enabled_value = true,
+                    enabled = LrBinding.keyEquals('enableFrame', true),
                 },
                 
                 f:static_text {
                     title = "px",
+                },
+            },
+        },
+        
+        {
+            title = "After Export",
+            
+            f:row {
+                f:checkbox {
+                    title = "Open export folder after export",
+                    value = bind 'openExportFolder',
+                    checked_value = true,
+                    unchecked_value = false,
                 },
             },
         },
@@ -367,17 +466,23 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
     -- Import the image processor
     local ImageProcessor = require 'ImageProcessor'
     
+    -- Get tile dimensions from calculated values
+    local tileWidth = exportParams.tileWidth
+    local tileHeight = exportParams.tileHeight
+    
     logInfo("========================================")
-    logInfo("Starting Instagram Carousel Export")
+    logInfo("Starting Instagram Carousel Export v1.2.2")
     logInfo("========================================")
-    logInfo("Tile size: " .. exportParams.carouselWidth .. "x" .. exportParams.carouselHeight)
+    logInfo("Tile aspect ratio: " .. exportParams.aspectRatio)
+    logInfo("Short side size: " .. exportParams.shortSideSize)
+    logInfo("Tile size: " .. tileWidth .. "x" .. tileHeight)
     logInfo("Seamless mode: " .. tostring(exportParams.seamlessMode))
-    logInfo("Aspect ratio: " .. exportParams.aspectRatio)
     logInfo("Overflow handling: " .. exportParams.overflowHandling)
     logDebug("Background color: R=" .. tostring(exportParams.backgroundColor.r) .. 
              " G=" .. tostring(exportParams.backgroundColor.g) .. 
              " B=" .. tostring(exportParams.backgroundColor.b))
     logDebug("Enable frame: " .. tostring(exportParams.enableFrame))
+    logDebug("Open export folder: " .. tostring(exportParams.openExportFolder))
     
     -- Get the photos to be exported
     local nPhotos = exportSession:countRenditions()
@@ -391,6 +496,9 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
     
     -- Track completed renditions for progress
     local completedRenditions = 0
+    
+    -- Track last export directory for opening after export
+    local lastExportDir = nil
     
     -- Iterate through each photo
     for i, rendition in exportContext:renditions() do
@@ -408,6 +516,9 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
         
         if success then
             logInfo("Successfully rendered photo " .. i .. ": " .. pathOrMessage)
+            
+            -- Track export directory
+            lastExportDir = LrPathUtils.parent(pathOrMessage)
             
             -- If seamless mode is enabled, split the image into tiles
             if exportParams.seamlessMode then
@@ -448,16 +559,21 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
                 else
                     logInfo("Source dimensions: " .. sourceWidth .. "x" .. sourceHeight)
                     
-                    -- Step 2: Calculate optimal tile count
-                    logDebug("Step 2: Calculating optimal tile count...")
-                    local tileWidth = exportParams.carouselWidth
-                    local tileHeight = exportParams.carouselHeight
+                    -- Step 2: Calculate optimal tile count based on aspect ratio
+                    -- The key insight: divide the panorama based on the RATIO, then resize
+                    logDebug("Step 2: Calculating optimal tile count based on ratio...")
                     
-                    local numTiles = math.ceil(sourceWidth / tileWidth)
+                    -- Calculate tile aspect ratio
+                    local tileRatio = tileWidth / tileHeight
+                    local sourceRatio = sourceWidth / sourceHeight
+                    
+                    -- Calculate how many tiles fit based on the ratio
+                    local numTiles = math.floor(sourceRatio / tileRatio + 0.5)
                     numTiles = math.max(1, math.min(numTiles, 10))  -- Instagram limit
                     
-                    logInfo("Optimal tile count: " .. numTiles .. " (based on " .. 
-                           sourceWidth .. " / " .. tileWidth .. ")")
+                    logInfo("Optimal tile count: " .. numTiles .. " (source ratio: " .. 
+                           string.format("%.2f", sourceRatio) .. ", tile ratio: " .. 
+                           string.format("%.2f", tileRatio) .. ")")
                     
                     -- Get the directory of the exported file
                     local exportDir = LrPathUtils.parent(pathOrMessage)
@@ -467,6 +583,9 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
                     -- Create output directory for tiles
                     local tileDir = LrPathUtils.child(exportDir, baseName .. "_carousel")
                     LrFileUtils.createDirectory(tileDir)
+                    
+                    -- Update lastExportDir to the tile directory
+                    lastExportDir = tileDir
                     
                     logDebug("Tile output directory: " .. tileDir)
                     
@@ -487,6 +606,7 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
                             enableFrame = exportParams.enableFrame,
                             sourceWidth = sourceWidth,
                             sourceHeight = sourceHeight,
+                            numTiles = numTiles,  -- Pass calculated tile count
                         }
                     )
                     
@@ -543,6 +663,12 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
     logInfo("========================================")
     logInfo("Export complete")
     logInfo("========================================")
+    
+    -- Open export folder if requested
+    if exportParams.openExportFolder and lastExportDir then
+        logInfo("Opening export folder: " .. lastExportDir)
+        LrShell.revealInShell(lastExportDir)
+    end
 end
 
 --------------------------------------------------------------------------------
