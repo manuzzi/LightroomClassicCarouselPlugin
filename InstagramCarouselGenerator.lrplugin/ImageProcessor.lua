@@ -303,19 +303,12 @@ function ImageProcessor.executeSplit(sourcePath, outputDir, tileWidth, tileHeigh
     local outputPattern = LrPathUtils.child(outputDir, baseName .. "_tile_%02d.jpg")
     
     -- Helper function to format RGB color for ImageMagick
-    -- Now using direct RGB values (0-255) from the UI
-    local function formatBgColor()
-        local r = math.floor(math.max(0, math.min(255, params.bgColorR or 255)))
-        local g = math.floor(math.max(0, math.min(255, params.bgColorG or 255)))
-        local b = math.floor(math.max(0, math.min(255, params.bgColorB or 255)))
-        return string.format("rgb(%d,%d,%d)", r, g, b)
-    end
-    
-    local function formatFrameColor()
-        local r = math.floor(math.max(0, math.min(255, params.frameColorR or 0)))
-        local g = math.floor(math.max(0, math.min(255, params.frameColorG or 0)))
-        local b = math.floor(math.max(0, math.min(255, params.frameColorB or 0)))
-        return string.format("rgb(%d,%d,%d)", r, g, b)
+    -- Takes R, G, B values (0-255) and default values if not specified
+    local function formatColor(r, g, b, defaultR, defaultG, defaultB)
+        local red = math.floor(math.max(0, math.min(255, r or defaultR)))
+        local green = math.floor(math.max(0, math.min(255, g or defaultG)))
+        local blue = math.floor(math.max(0, math.min(255, b or defaultB)))
+        return string.format("rgb(%d,%d,%d)", red, green, blue)
     end
     
     local command
@@ -324,7 +317,7 @@ function ImageProcessor.executeSplit(sourcePath, outputDir, tileWidth, tileHeigh
         -- BANDS MODE:
         -- Add bands on top/bottom to fill the tile height
         
-        local bgColor = formatBgColor()
+        local bgColor = formatColor(params.bgColorR, params.bgColorG, params.bgColorB, 255, 255, 255)
         logDebug("Background color: " .. bgColor)
         
         if params.enableFrame then
@@ -334,7 +327,7 @@ function ImageProcessor.executeSplit(sourcePath, outputDir, tileWidth, tileHeigh
             -- 3. Add bands on top/bottom with background color
             -- 4. Split into tiles
             
-            local frameColor = formatFrameColor()
+            local frameColor = formatColor(params.frameColorR, params.frameColorG, params.frameColorB, 0, 0, 0)
             local frameSize = math.max(1, math.min(100, params.frameSize or 10))
             
             logDebug("Frame color: " .. frameColor)
