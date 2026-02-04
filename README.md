@@ -74,6 +74,10 @@ InstagramCarouselGenerator.lrplugin/
     └── Images/                                 # Plugin icons and images
 ```
 
+## Detailed Usage Guide
+
+For comprehensive usage examples, troubleshooting, and best practices, see the [Usage Guide](InstagramCarouselGenerator.lrplugin/Documentation/USAGE.md).
+
 ## Development
 
 This plugin is built using the Adobe Lightroom SDK and written in Lua.
