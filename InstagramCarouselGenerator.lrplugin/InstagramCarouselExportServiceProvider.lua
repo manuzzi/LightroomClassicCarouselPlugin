@@ -610,6 +610,7 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
                             sourceWidth = sourceWidth,
                             sourceHeight = sourceHeight,
                             numTiles = numTiles,  -- Pass calculated tile count
+                            baseName = baseName,  -- Pass original file name for tile naming
                         }
                     )
                     

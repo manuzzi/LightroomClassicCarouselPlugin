@@ -205,6 +205,7 @@ end
 --     - sourceWidth: Width of source image (from Lightroom)
 --     - sourceHeight: Height of source image (from Lightroom)
 --     - numTiles: Pre-calculated number of tiles (based on ratio)
+--     - baseName: Original file name (without extension) for tile naming
 
 function ImageProcessor.splitImageIntoTiles(sourcePath, outputDir, tileWidth, tileHeight, params)
     logInfo("=== Starting tile split operation ===")
@@ -213,6 +214,10 @@ function ImageProcessor.splitImageIntoTiles(sourcePath, outputDir, tileWidth, ti
     logInfo("Target tile size: " .. tileWidth .. "x" .. tileHeight)
     logDebug("Overflow handling: " .. tostring(params.overflowHandling))
     logDebug("Enable frame: " .. tostring(params.enableFrame))
+    
+    -- Get base name for tile naming (fallback to "tile" if not provided)
+    local baseName = params.baseName or "tile"
+    logDebug("Base name for tiles: " .. baseName)
     
     -- Check ImageMagick
     if not ImageProcessor.checkImageMagickAvailable() then
@@ -243,6 +248,9 @@ function ImageProcessor.splitImageIntoTiles(sourcePath, outputDir, tileWidth, ti
     
     logDebug("Total width for tiles: " .. totalWidth)
     
+    -- Add baseName to params for executeSplit
+    params.baseName = baseName
+    
     -- Execute the split
     local success, errorMsg = ImageProcessor.executeSplit(
         sourcePath,
@@ -259,10 +267,10 @@ function ImageProcessor.splitImageIntoTiles(sourcePath, outputDir, tileWidth, ti
         return nil, errorMsg
     end
     
-    -- Collect generated tiles
+    -- Collect generated tiles (using the new naming pattern: baseName_tile_XX.jpg)
     local tiles = {}
     for i = 0, numTiles - 1 do
-        local tilePath = LrPathUtils.child(outputDir, string.format("tile_%02d.jpg", i))
+        local tilePath = LrPathUtils.child(outputDir, string.format("%s_tile_%02d.jpg", baseName, i))
         if LrFileUtils.exists(tilePath) then
             table.insert(tiles, tilePath)
             logDebug("Found tile: " .. tilePath)
@@ -292,7 +300,10 @@ end
 
 function ImageProcessor.executeSplit(sourcePath, outputDir, tileWidth, tileHeight, numTiles, totalWidth, params)
     local magickCmd = getImageMagickCommand()
-    local outputPattern = LrPathUtils.child(outputDir, "tile_%02d.jpg")
+    
+    -- Use baseName for tile naming (e.g., "originalfile_tile_00.jpg")
+    local baseName = params.baseName or "tile"
+    local outputPattern = LrPathUtils.child(outputDir, baseName .. "_tile_%02d.jpg")
     
     -- Helper function to safely get color values
     local function getColorValue(colorTable, channel)
