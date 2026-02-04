@@ -17,6 +17,7 @@ local LrTasks = import 'LrTasks'
 local LrFileUtils = import 'LrFileUtils'
 local LrPathUtils = import 'LrPathUtils'
 local LrApplication = import 'LrApplication'
+local LrSystemInfo = import 'LrSystemInfo'
 
 -- Create a logger for this module
 local logger = LrLogger('InstagramCarouselExportService')
@@ -324,7 +325,7 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
                 LrFileUtils.createDirectory(tileDir)
                 
                 -- Split the image
-                local tiles = ImageProcessor.splitImageIntoTiles(
+                local tiles, errorMsg = ImageProcessor.splitImageIntoTiles(
                     pathOrMessage,
                     tileDir,
                     exportParams.carouselWidth,
@@ -345,15 +346,34 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
                     LrFileUtils.delete(pathOrMessage)
                 else
                     logger:warn("Failed to split image into tiles - keeping original export")
-                    LrDialogs.message(
-                        "Warning",
-                        "Could not split image into carousel tiles. ImageMagick may not be installed.\n\n" ..
-                        "Original file has been exported without splitting.\n\n" ..
-                        "To enable image splitting, please install ImageMagick:\n" ..
-                        "- macOS: brew install imagemagick\n" ..
-                        "- Windows: Download from https://imagemagick.org",
-                        "info"
-                    )
+                    
+                    -- Provide detailed error message
+                    local errorDetails = errorMsg or "Unknown error"
+                    local platform = string.find(string.lower(LrSystemInfo.osVersion()), "windows") and "Windows" or "macOS"
+                    
+                    local messageText
+                    if string.find(errorDetails, "not installed") or string.find(errorDetails, "not in PATH") then
+                        messageText = "Could not split image into carousel tiles. ImageMagick is not installed or not accessible.\n\n" ..
+                                    "Original file has been exported without splitting.\n\n" ..
+                                    "To enable image splitting, please install ImageMagick:\n"
+                        if platform == "Windows" then
+                            messageText = messageText .. 
+                                        "- Download from https://imagemagick.org\n" ..
+                                        "- During installation, make sure to check 'Add to PATH'\n" ..
+                                        "- Restart Lightroom after installation"
+                        else
+                            messageText = messageText ..
+                                        "- Install via Homebrew: brew install imagemagick\n" ..
+                                        "- Or download from https://imagemagick.org\n" ..
+                                        "- Restart Lightroom after installation"
+                        end
+                    else
+                        messageText = "Could not split image into carousel tiles.\n\n" ..
+                                    "Error: " .. errorDetails .. "\n\n" ..
+                                    "Original file has been exported without splitting."
+                    end
+                    
+                    LrDialogs.message("Warning", messageText, "info")
                 end
             else
                 logger:info("Seamless mode disabled - exporting as single image")

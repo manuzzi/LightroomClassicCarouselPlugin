@@ -13,11 +13,23 @@ local LrFileUtils = import 'LrFileUtils'
 local LrPathUtils = import 'LrPathUtils'
 local LrTasks = import 'LrTasks'
 local LrApplication = import 'LrApplication'
+local LrSystemInfo = import 'LrSystemInfo'
 
 local logger = LrLogger('ImageProcessor')
 logger:enable("print")
 
 local ImageProcessor = {}
+
+--------------------------------------------------------------------------------
+-- Platform Detection
+
+local function isWindows()
+    -- Use Lightroom SDK's platform detection
+    local platform = LrSystemInfo.osVersion()
+    return string.find(platform:lower(), "windows") ~= nil
+end
+
+local WIN_ENV = isWindows()
 
 --------------------------------------------------------------------------------
 -- Constants
@@ -37,6 +49,43 @@ local function escapeShellArg(arg)
     else
         -- Unix: use single quotes and escape any single quotes
         return "'" .. arg:gsub("'", "'\\''") .. "'"
+    end
+end
+
+--------------------------------------------------------------------------------
+-- Check if ImageMagick is installed and available
+
+function ImageProcessor.checkImageMagickAvailable()
+    -- Try to run ImageMagick version command
+    local success, result = LrTasks.pcall(function()
+        local command
+        if WIN_ENV then
+            -- Windows: try 'magick' command
+            command = 'magick -version'
+        else
+            -- Unix/macOS: try 'convert' command
+            command = 'convert -version 2>/dev/null'
+        end
+        
+        local handle = io.popen(command)
+        if handle then
+            local output = handle:read("*a")
+            local exitCode = handle:close()
+            
+            -- Check if output contains "ImageMagick" or "Version"
+            if output and (string.find(output, "ImageMagick") or string.find(output, "Version")) then
+                logger:info("ImageMagick detected: " .. output:sub(1, 100))
+                return true
+            end
+        end
+        return false
+    end)
+    
+    if success and result then
+        return true
+    else
+        logger:warn("ImageMagick not detected on system")
+        return false
     end
 end
 
@@ -83,14 +132,19 @@ function ImageProcessor.splitImageIntoTiles(sourcePath, outputDir, tileWidth, ti
     logger:info(string.format("Splitting image: %s", sourcePath))
     logger:info(string.format("Tile size: %dx%d", tileWidth, tileHeight))
     
+    -- First, check if ImageMagick is available
+    if not ImageProcessor.checkImageMagickAvailable() then
+        logger:error("ImageMagick is not available on this system")
+        return nil, "ImageMagick not installed or not in PATH"
+    end
+    
     local tiles = {}
     
     -- Get source image dimensions
     local sourceWidth, sourceHeight = ImageProcessor.getImageDimensions(sourcePath)
     
     if not sourceWidth or not sourceHeight then
-        logger:warn("Could not determine source image dimensions, using metadata from Lightroom")
-        -- In this case, we'll rely on Lightroom's export process
+        logger:warn("Could not determine source image dimensions")
         return nil, "Could not determine image dimensions"
     end
     
