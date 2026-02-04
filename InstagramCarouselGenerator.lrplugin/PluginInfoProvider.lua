@@ -18,6 +18,17 @@ local LrPathUtils = import 'LrPathUtils'
 local pluginInfoProvider = {}
 
 --------------------------------------------------------------------------------
+-- Constants
+
+-- Common macOS paths where ImageMagick might be installed
+local MACOS_MAGICK_PATHS = {
+    "/opt/homebrew/bin/magick",  -- Apple Silicon Homebrew
+    "/usr/local/bin/magick",      -- Intel Homebrew
+    "/opt/local/bin/magick",      -- MacPorts
+    "magick"                      -- System PATH
+}
+
+--------------------------------------------------------------------------------
 -- Platform detection
 
 local function isWindows()
@@ -97,14 +108,7 @@ local function checkSystemImageMagick()
             end
         else
             -- macOS: Check multiple common locations
-            local paths = {
-                "/opt/homebrew/bin/magick",  -- Apple Silicon Homebrew
-                "/usr/local/bin/magick",      -- Intel Homebrew
-                "/opt/local/bin/magick",      -- MacPorts
-                "magick"                      -- System PATH
-            }
-            
-            for _, path in ipairs(paths) do
+            for _, path in ipairs(MACOS_MAGICK_PATHS) do
                 local handle = io.popen(path .. " -version 2>&1")
                 if handle then
                     local output = handle:read("*a")
@@ -136,8 +140,17 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
     
     local imageMagickInstalled = bundledInstalled or systemInstalled
     local imageMagickVersion = bundledInstalled and bundledVersion or systemVersion
-    local imageMagickSource = bundledInstalled and "bundled" or (systemInstalled and "system" or nil)
     local winPlatform = isWindows()
+    
+    -- Determine source text for display
+    local imageMagickSourceText
+    if bundledInstalled then
+        imageMagickSourceText = "Bundled with plugin"
+    elseif systemInstalled and systemPath then
+        imageMagickSourceText = "System: " .. systemPath
+    else
+        imageMagickSourceText = "System PATH"
+    end
     
     return {
         {
@@ -209,8 +222,7 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
                 },
                 
                 f:static_text {
-                    title = imageMagickSource == "bundled" and "Bundled with plugin" or 
-                           (systemPath and ("System: " .. systemPath) or "System PATH"),
+                    title = imageMagickSourceText,
                 },
             } or f:column {},
             

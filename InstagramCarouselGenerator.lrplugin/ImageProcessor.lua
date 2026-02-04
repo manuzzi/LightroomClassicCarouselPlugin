@@ -38,6 +38,14 @@ local TILE_NAME_PATTERN = "tile_%d.jpg"
 local TILE_NAME_PATTERN_WIN = "tile_%d.jpg"
 local TILE_NAME_PATTERN_UNIX = "tile_%%d.jpg"
 
+-- Common macOS paths where ImageMagick might be installed
+local MACOS_MAGICK_PATHS = {
+    "/opt/homebrew/bin/magick",  -- Apple Silicon Homebrew
+    "/usr/local/bin/magick",      -- Intel Homebrew
+    "/opt/local/bin/magick",      -- MacPorts
+    "magick"                      -- System PATH
+}
+
 --------------------------------------------------------------------------------
 -- Bundled ImageMagick binary path (cached)
 
@@ -148,21 +156,22 @@ function ImageProcessor.checkImageMagickAvailable()
     
     -- Try to run ImageMagick version command from system PATH
     local success, result = LrTasks.pcall(function()
-        local command
         if WIN_ENV then
             -- Windows: try 'magick' command
-            command = 'magick -version 2>&1'
+            local handle = io.popen('magick -version 2>&1')
+            if handle then
+                local output = handle:read("*a")
+                handle:close()
+                
+                -- Check if output contains "ImageMagick"
+                if output and string.find(output, "ImageMagick") then
+                    logger:info("ImageMagick detected: " .. output:sub(1, 100))
+                    return true
+                end
+            end
         else
             -- macOS: try 'magick' command with common Homebrew paths
-            -- Check multiple common locations for macOS
-            local paths = {
-                "/opt/homebrew/bin/magick",  -- Apple Silicon Homebrew
-                "/usr/local/bin/magick",      -- Intel Homebrew
-                "/opt/local/bin/magick",      -- MacPorts
-                "magick"                      -- System PATH
-            }
-            
-            for _, path in ipairs(paths) do
+            for _, path in ipairs(MACOS_MAGICK_PATHS) do
                 local testCommand = path .. " -version 2>&1"
                 local handle = io.popen(testCommand)
                 if handle then
@@ -173,19 +182,6 @@ function ImageProcessor.checkImageMagickAvailable()
                         return true, path
                     end
                 end
-            end
-            return false
-        end
-        
-        local handle = io.popen(command)
-        if handle then
-            local output = handle:read("*a")
-            handle:close()
-            
-            -- Check if output contains "ImageMagick"
-            if output and string.find(output, "ImageMagick") then
-                logger:info("ImageMagick detected: " .. output:sub(1, 100))
-                return true
             end
         end
         return false
@@ -207,7 +203,7 @@ function ImageProcessor.getWorkingMagickPath()
     local bundledPath = getBundledMagickPath()
     if bundledPath then
         -- Verify the bundled binary works
-        local success, _ = LrTasks.pcall(function()
+        local pcallSuccess, binaryWorks = LrTasks.pcall(function()
             local command = escapeShellArg(bundledPath) .. " -version 2>&1"
             local handle = io.popen(command)
             if handle then
@@ -220,7 +216,7 @@ function ImageProcessor.getWorkingMagickPath()
             return false
         end)
         
-        if success then
+        if pcallSuccess and binaryWorks then
             return bundledPath
         end
     end
@@ -237,14 +233,7 @@ function ImageProcessor.getWorkingMagickPath()
         end
     else
         -- macOS: check multiple common locations
-        local paths = {
-            "/opt/homebrew/bin/magick",  -- Apple Silicon Homebrew
-            "/usr/local/bin/magick",      -- Intel Homebrew
-            "/opt/local/bin/magick",      -- MacPorts
-            "magick"                      -- System PATH
-        }
-        
-        for _, path in ipairs(paths) do
+        for _, path in ipairs(MACOS_MAGICK_PATHS) do
             local testCommand = path .. " -version 2>&1"
             local handle = io.popen(testCommand)
             if handle then
