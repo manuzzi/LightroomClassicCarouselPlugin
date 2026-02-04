@@ -281,13 +281,13 @@ end
 -- The image processing logic:
 -- For CROP mode:
 --   1. Resize width to exactly totalWidth (num_tiles * tile_width)
---   2. Crop top and bottom to get exact tile height
+--   2. Crop top and bottom to get exact tile height (removes overflow)
 --   3. Split into tiles
 --
--- For BANDS mode:
---   1. Resize to fit within tile dimensions (maintaining aspect ratio)
---   2. Add background bands on top/bottom if needed
---   3. Optionally add frame border
+-- For BANDS mode (with optional frame):
+--   1. If frame enabled: add frame border to image FIRST
+--   2. Resize to fit within tile dimensions (maintaining aspect ratio)
+--   3. Add background bands on top/bottom if needed
 --   4. Split into tiles
 
 function ImageProcessor.executeSplit(sourcePath, outputDir, tileWidth, tileHeight, numTiles, totalWidth, params)
@@ -318,45 +318,34 @@ function ImageProcessor.executeSplit(sourcePath, outputDir, tileWidth, tileHeigh
     
     if params.overflowHandling == 'addBands' then
         -- BANDS MODE:
-        -- 1. Resize to fit width (totalWidth) while maintaining aspect ratio
-        -- 2. Use -extent with gravity center to add bands on top/bottom
-        -- 3. Optionally add frame
-        -- 4. Split into tiles
+        -- Add bands on top/bottom to fill the tile height
         
         local bgColor = formatColor(params.backgroundColor)
         logDebug("Background color: " .. bgColor)
         
-        local frameOpts = ""
         if params.enableFrame then
+            -- WITH FRAME:
+            -- 1. Add frame border to image FIRST (around the actual content)
+            -- 2. Resize the framed image to fit width
+            -- 3. Add bands on top/bottom with background color
+            -- 4. Split into tiles
+            
             local frameColor = formatColor(params.frameColor)
             local frameSize = math.max(1, math.min(100, params.frameSize or 10))
-            -- Use -border to add a frame around the entire image
-            frameOpts = string.format(' -bordercolor "%s" -border %dx%d', 
-                frameColor, frameSize, frameSize)
-            logDebug("Frame options: " .. frameOpts)
             
-            -- When adding frame, we need to account for the border in our extent calculation
-            -- The final tile size should still be tileWidth x tileHeight
-            -- So we first add frame, then crop to exact tile dimensions
-        end
-        
-        -- Build command:
-        -- 1. Resize to fit width while keeping aspect ratio
-        -- 2. Add bands with extent (gravity center adds to top/bottom)
-        -- 3. Optionally add frame (then crop back to size)
-        -- 4. Split into tiles
-        
-        if params.enableFrame then
-            -- With frame: resize, add bands, add frame, crop back to tile size, split
+            logDebug("Frame color: " .. frameColor)
+            logDebug("Frame size: " .. frameSize)
+            
+            -- The frame is added to the original image, then we resize the framed image
+            -- Then add bands around it
             command = string.format(
-                '%s %s -resize %dx -background "%s" -gravity center -extent %dx%d %s -gravity center -crop %dx%d +repage -crop %dx%d +repage +adjoin %s',
+                '%s %s -bordercolor "%s" -border %d -resize %dx -background "%s" -gravity center -extent %dx%d -crop %dx%d +repage +adjoin %s',
                 magickCmd,
                 escapeShellArg(sourcePath),
+                frameColor,
+                frameSize,
                 totalWidth,
                 bgColor,
-                totalWidth,
-                tileHeight,
-                frameOpts,
                 totalWidth,
                 tileHeight,
                 tileWidth,
@@ -364,7 +353,10 @@ function ImageProcessor.executeSplit(sourcePath, outputDir, tileWidth, tileHeigh
                 escapeShellArg(outputPattern)
             )
         else
-            -- Without frame: resize, add bands, split
+            -- WITHOUT FRAME:
+            -- 1. Resize to fit width while keeping aspect ratio
+            -- 2. Add bands with extent (gravity center adds to top/bottom)
+            -- 3. Split into tiles
             command = string.format(
                 '%s %s -resize %dx -background "%s" -gravity center -extent %dx%d -crop %dx%d +repage +adjoin %s',
                 magickCmd,
@@ -380,12 +372,13 @@ function ImageProcessor.executeSplit(sourcePath, outputDir, tileWidth, tileHeigh
         end
     else
         -- CROP MODE:
-        -- 1. Resize width to exactly totalWidth (maintaining aspect ratio)
-        -- 2. Crop top and bottom to get exact tile height (gravity center)
+        -- Crop top and bottom to fit the tile height (removes overflow, doesn't add anything)
+        -- 1. Resize width to exactly totalWidth (maintaining aspect ratio - height will be taller)
+        -- 2. Crop to exact tile height using -crop with gravity center (removes top/bottom)
         -- 3. Split into tiles
         
         command = string.format(
-            '%s %s -resize %dx -gravity center -extent %dx%d +repage -crop %dx%d +repage +adjoin %s',
+            '%s %s -resize %dx -gravity center -crop %dx%d+0+0 +repage -crop %dx%d +repage +adjoin %s',
             magickCmd,
             escapeShellArg(sourcePath),
             totalWidth,

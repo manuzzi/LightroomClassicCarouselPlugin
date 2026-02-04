@@ -224,7 +224,7 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             f:spacer { height = 10 },
             
             f:static_text {
-                title = "Version 1.2.2",
+                title = "Version 1.2.3",
                 font = '<system/bold>',
             },
             
