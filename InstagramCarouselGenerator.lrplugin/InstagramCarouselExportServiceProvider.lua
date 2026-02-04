@@ -100,6 +100,9 @@ exportServiceProvider.canExportToTemporaryLocation = true
 -- Export service name
 exportServiceProvider.exportName = "Instagram Carousel"
 
+-- Hide the Video panel (this plugin is for photos only)
+exportServiceProvider.hideSections = { 'video' }
+
 --------------------------------------------------------------------------------
 -- Helper function to calculate tile dimensions from ratio and short side
 
@@ -181,6 +184,17 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
             title = "Instagram Carousel Settings",
             synopsis = bind 'seamlessMode',
             
+            f:row {
+                f:checkbox {
+                    title = "Enable Seamless Carousel Mode (split panoramas)",
+                    value = bind 'seamlessMode',
+                    checked_value = true,
+                    unchecked_value = false,
+                },
+            },
+            
+            f:spacer { height = 10 },
+            
             -- Aspect Ratio Selection
             f:row {
                 spacing = f:control_spacing(),
@@ -193,6 +207,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 
                 f:popup_menu {
                     value = bind 'aspectRatio',
+                    enabled = bind 'seamlessMode',
                     items = {
                         { title = "4:5 (Portrait)", value = '4:5' },
                         { title = "1:1 (Square)", value = '1:1' },
@@ -215,6 +230,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 
                 f:popup_menu {
                     value = bind 'shortSideSize',
+                    enabled = bind 'seamlessMode',
                     items = {
                         { title = "1080 px (Instagram standard)", value = '1080' },
                         { title = "2160 px (2x)", value = '2160' },
@@ -241,7 +257,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                     min = 100,
                     max = 8640,
                     precision = 0,
-                    enabled = LrBinding.keyEquals('shortSideSize', 'custom'),
+                    enabled = LrBinding.andAllKeys('seamlessMode', LrBinding.keyEquals('shortSideSize', 'custom')),
                 },
                 
                 f:static_text {
@@ -271,17 +287,6 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                     font = '<system/bold>',
                 },
             },
-            
-            f:spacer { height = 10 },
-            
-            f:row {
-                f:checkbox {
-                    title = "Enable Seamless Carousel Mode (split panoramas)",
-                    value = bind 'seamlessMode',
-                    checked_value = true,
-                    unchecked_value = false,
-                },
-            },
         },
         
         {
@@ -305,6 +310,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                     title = "Add bands with optional frame",
                     value = bind 'overflowHandling',
                     checked_value = 'addBands',
+                    enabled = bind 'seamlessMode',
                 },
             },
             
@@ -315,6 +321,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                     title = "Crop to fit perfectly",
                     value = bind 'overflowHandling',
                     checked_value = 'crop',
+                    enabled = bind 'seamlessMode',
                 },
             },
         },
@@ -323,31 +330,33 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
             title = "Band & Frame Settings",
             synopsis = bind 'enableFrame',
             
+            -- Row 1: Background color and Enable Frame checkbox
             f:row {
                 spacing = f:control_spacing(),
                 
                 f:static_text {
-                    title = "Background Color:",
+                    title = "Background:",
                     alignment = 'right',
                     width = share 'label_width',
                 },
                 
                 f:color_well {
                     value = bind 'backgroundColor',
-                    enabled = LrBinding.keyEquals('overflowHandling', 'addBands'),
+                    enabled = LrBinding.andAllKeys('seamlessMode', LrBinding.keyEquals('overflowHandling', 'addBands')),
                 },
-            },
-            
-            f:row {
+                
+                f:spacer { width = 20 },
+                
                 f:checkbox {
                     title = "Enable Frame",
                     value = bind 'enableFrame',
                     checked_value = true,
                     unchecked_value = false,
-                    enabled = LrBinding.keyEquals('overflowHandling', 'addBands'),
+                    enabled = LrBinding.andAllKeys('seamlessMode', LrBinding.keyEquals('overflowHandling', 'addBands')),
                 },
             },
             
+            -- Row 2: Frame color and Frame size
             f:row {
                 spacing = f:control_spacing(),
                 
@@ -359,26 +368,22 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 
                 f:color_well {
                     value = bind 'frameColor',
-                    enabled = LrBinding.keyEquals('enableFrame', true),
+                    enabled = LrBinding.andAllKeys('seamlessMode', 'enableFrame'),
                 },
-            },
-            
-            f:row {
-                spacing = f:control_spacing(),
+                
+                f:spacer { width = 20 },
                 
                 f:static_text {
-                    title = "Frame Size:",
-                    alignment = 'right',
-                    width = share 'label_width',
+                    title = "Size:",
                 },
                 
                 f:edit_field {
                     value = bind 'frameSize',
-                    width_in_digits = 5,
+                    width_in_digits = 4,
                     min = 1,
                     max = 100,
                     precision = 0,
-                    enabled = LrBinding.keyEquals('enableFrame', true),
+                    enabled = LrBinding.andAllKeys('seamlessMode', 'enableFrame'),
                 },
                 
                 f:static_text {
