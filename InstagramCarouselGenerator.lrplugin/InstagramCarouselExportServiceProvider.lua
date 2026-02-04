@@ -81,8 +81,17 @@ exportServiceProvider.exportPresetFields = {
     
     -- Overflow handling
     { key = 'overflowHandling', default = 'addBands' },
-    { key = 'backgroundColor', default = { r = 1, g = 1, b = 1 } },
-    { key = 'frameColor', default = { r = 0, g = 0, b = 0 } },
+    
+    -- Background color as separate RGB values (0-255 range for easy use)
+    { key = 'bgColorR', default = 255 },
+    { key = 'bgColorG', default = 255 },
+    { key = 'bgColorB', default = 255 },
+    
+    -- Frame color as separate RGB values (0-255 range)
+    { key = 'frameColorR', default = 0 },
+    { key = 'frameColorG', default = 0 },
+    { key = 'frameColorB', default = 0 },
+    
     { key = 'frameSize', default = 10 },
     { key = 'enableFrame', default = false },
     
@@ -330,7 +339,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
             title = "Band & Frame Settings",
             synopsis = bind 'enableFrame',
             
-            -- Row 1: Background color and Enable Frame checkbox
+            -- Row 1: Band Color RGB sliders
             f:row {
                 spacing = f:control_spacing(),
                 
@@ -340,12 +349,46 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                     width = share 'label_width',
                 },
                 
-                f:color_well {
-                    value = bind 'backgroundColor',
+                f:static_text {
+                    title = "R:",
+                },
+                
+                f:edit_field {
+                    value = bind 'bgColorR',
+                    width_in_digits = 3,
+                    min = 0,
+                    max = 255,
+                    precision = 0,
                     enabled = LrBinding.andAllKeys('seamlessMode', LrBinding.keyEquals('overflowHandling', 'addBands')),
                 },
                 
-                f:spacer { width = 20 },
+                f:static_text {
+                    title = "G:",
+                },
+                
+                f:edit_field {
+                    value = bind 'bgColorG',
+                    width_in_digits = 3,
+                    min = 0,
+                    max = 255,
+                    precision = 0,
+                    enabled = LrBinding.andAllKeys('seamlessMode', LrBinding.keyEquals('overflowHandling', 'addBands')),
+                },
+                
+                f:static_text {
+                    title = "B:",
+                },
+                
+                f:edit_field {
+                    value = bind 'bgColorB',
+                    width_in_digits = 3,
+                    min = 0,
+                    max = 255,
+                    precision = 0,
+                    enabled = LrBinding.andAllKeys('seamlessMode', LrBinding.keyEquals('overflowHandling', 'addBands')),
+                },
+                
+                f:spacer { width = 10 },
                 
                 f:checkbox {
                     title = "Enable Frame",
@@ -356,7 +399,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 },
             },
             
-            -- Row 2: Frame color and Frame size
+            -- Row 2: Frame Color RGB sliders and Frame size
             f:row {
                 spacing = f:control_spacing(),
                 
@@ -366,20 +409,54 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                     width = share 'label_width',
                 },
                 
-                f:color_well {
-                    value = bind 'frameColor',
+                f:static_text {
+                    title = "R:",
+                },
+                
+                f:edit_field {
+                    value = bind 'frameColorR',
+                    width_in_digits = 3,
+                    min = 0,
+                    max = 255,
+                    precision = 0,
                     enabled = LrBinding.andAllKeys('seamlessMode', 'enableFrame'),
                 },
                 
-                f:spacer { width = 20 },
+                f:static_text {
+                    title = "G:",
+                },
+                
+                f:edit_field {
+                    value = bind 'frameColorG',
+                    width_in_digits = 3,
+                    min = 0,
+                    max = 255,
+                    precision = 0,
+                    enabled = LrBinding.andAllKeys('seamlessMode', 'enableFrame'),
+                },
                 
                 f:static_text {
-                    title = "Frame Size:",
+                    title = "B:",
+                },
+                
+                f:edit_field {
+                    value = bind 'frameColorB',
+                    width_in_digits = 3,
+                    min = 0,
+                    max = 255,
+                    precision = 0,
+                    enabled = LrBinding.andAllKeys('seamlessMode', 'enableFrame'),
+                },
+                
+                f:spacer { width = 10 },
+                
+                f:static_text {
+                    title = "Size:",
                 },
                 
                 f:edit_field {
                     value = bind 'frameSize',
-                    width_in_digits = 4,
+                    width_in_digits = 3,
                     min = 1,
                     max = 100,
                     precision = 0,
@@ -484,19 +561,13 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
     logInfo("Seamless mode: " .. tostring(exportParams.seamlessMode))
     logInfo("Overflow handling: " .. exportParams.overflowHandling)
     
-    -- Safe color logging helper
-    local function safeColorString(color)
-        if type(color) == "table" then
-            local r = type(color.r) == "number" and color.r or 0
-            local g = type(color.g) == "number" and color.g or 0
-            local b = type(color.b) == "number" and color.b or 0
-            return string.format("R=%.2f G=%.2f B=%.2f", r, g, b)
-        else
-            return "invalid color format"
-        end
-    end
-    
-    logDebug("Background color: " .. safeColorString(exportParams.backgroundColor))
+    -- Log color values (now using direct RGB values 0-255)
+    logDebug("Background color: R=" .. tostring(exportParams.bgColorR) .. 
+             " G=" .. tostring(exportParams.bgColorG) .. 
+             " B=" .. tostring(exportParams.bgColorB))
+    logDebug("Frame color: R=" .. tostring(exportParams.frameColorR) .. 
+             " G=" .. tostring(exportParams.frameColorG) .. 
+             " B=" .. tostring(exportParams.frameColorB))
     logDebug("Enable frame: " .. tostring(exportParams.enableFrame))
     logDebug("Open export folder: " .. tostring(exportParams.openExportFolder))
     
@@ -619,8 +690,13 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
                         tileHeight,
                         {
                             overflowHandling = exportParams.overflowHandling,
-                            backgroundColor = exportParams.backgroundColor,
-                            frameColor = exportParams.frameColor,
+                            -- Pass RGB values directly (0-255 range)
+                            bgColorR = exportParams.bgColorR,
+                            bgColorG = exportParams.bgColorG,
+                            bgColorB = exportParams.bgColorB,
+                            frameColorR = exportParams.frameColorR,
+                            frameColorG = exportParams.frameColorG,
+                            frameColorB = exportParams.frameColorB,
                             frameSize = exportParams.frameSize,
                             enableFrame = exportParams.enableFrame,
                             sourceWidth = sourceWidth,

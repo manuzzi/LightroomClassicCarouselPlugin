@@ -198,8 +198,8 @@ end
 --   tileHeight: Target height of each tile (final output size)
 --   params: Table with additional parameters:
 --     - overflowHandling: 'addBands' or 'crop'
---     - backgroundColor: LrColor object or {r, g, b} table with values from 0-1
---     - frameColor: LrColor object or {r, g, b} table with values from 0-1
+--     - bgColorR, bgColorG, bgColorB: Background color RGB values (0-255)
+--     - frameColorR, frameColorG, frameColorB: Frame color RGB values (0-255)
 --     - frameSize: Frame size in pixels
 --     - enableFrame: Boolean to enable frame
 --     - sourceWidth: Width of source image (from Lightroom)
@@ -302,80 +302,19 @@ function ImageProcessor.executeSplit(sourcePath, outputDir, tileWidth, tileHeigh
     local baseName = params.baseName or "tile"
     local outputPattern = LrPathUtils.child(outputDir, baseName .. "_tile_%02d.jpg")
     
-    -- Helper function to safely get color values
-    -- Handles multiple formats:
-    -- 1. LrColor objects from color_well (indexed as [1]=red, [2]=green, [3]=blue)
-    -- 2. Tables with {r, g, b} keys (like defaults)
-    -- 3. Tables with {red, green, blue} keys
-    local function getColorValue(colorTable, channel)
-        if type(colorTable) ~= "table" then
-            logDebug("Color is not a table, returning 0")
-            return 0
-        end
-        
-        -- Channel mapping for names to numeric indices
-        -- LrColor objects from color_well use numeric indices: 1=red, 2=green, 3=blue
-        local channelIndex = {
-            r = 1,
-            g = 2,
-            b = 3
-        }
-        
-        local channelFullNames = {
-            r = "red",
-            g = "green",
-            b = "blue"
-        }
-        
-        local index = channelIndex[channel]
-        local fullName = channelFullNames[channel]
-        
-        if not index or not fullName then
-            logDebug("Unknown channel: " .. tostring(channel))
-            return 0
-        end
-        
-        -- First, try numeric index access (LrColor from color_well)
-        -- This is the most common format from color_well widget
-        local value = colorTable[index]
-        if type(value) == "number" then
-            logDebug("Got color value via index [" .. index .. "]: " .. tostring(value))
-            return math.max(0, math.min(1, value))
-        end
-        
-        -- Second, try direct table access with short name (e.g., colorTable.r)
-        -- This handles our default values like { r = 1, g = 1, b = 1 }
-        value = colorTable[channel]
-        if type(value) == "number" then
-            logDebug("Got color value via property " .. channel .. ": " .. tostring(value))
-            return math.max(0, math.min(1, value))
-        end
-        
-        -- Third, try direct table access with full name (e.g., colorTable.red)
-        value = colorTable[fullName]
-        if type(value) == "number" then
-            logDebug("Got color value via property " .. fullName .. ": " .. tostring(value))
-            return math.max(0, math.min(1, value))
-        end
-        
-        -- Fourth, try LrColor method access (e.g., colorTable:red())
-        if type(colorTable[fullName]) == "function" then
-            local success, methodValue = pcall(function() return colorTable[fullName](colorTable) end)
-            if success and type(methodValue) == "number" then
-                logDebug("Got color value via method " .. fullName .. "(): " .. tostring(methodValue))
-                return math.max(0, math.min(1, methodValue))
-            end
-        end
-        
-        logDebug("Could not find valid value for channel: " .. channel)
-        return 0
+    -- Helper function to format RGB color for ImageMagick
+    -- Now using direct RGB values (0-255) from the UI
+    local function formatBgColor()
+        local r = math.floor(math.max(0, math.min(255, params.bgColorR or 255)))
+        local g = math.floor(math.max(0, math.min(255, params.bgColorG or 255)))
+        local b = math.floor(math.max(0, math.min(255, params.bgColorB or 255)))
+        return string.format("rgb(%d,%d,%d)", r, g, b)
     end
     
-    -- Helper function to format color for ImageMagick
-    local function formatColor(colorTable)
-        local r = math.floor(getColorValue(colorTable, "r") * 255)
-        local g = math.floor(getColorValue(colorTable, "g") * 255)
-        local b = math.floor(getColorValue(colorTable, "b") * 255)
+    local function formatFrameColor()
+        local r = math.floor(math.max(0, math.min(255, params.frameColorR or 0)))
+        local g = math.floor(math.max(0, math.min(255, params.frameColorG or 0)))
+        local b = math.floor(math.max(0, math.min(255, params.frameColorB or 0)))
         return string.format("rgb(%d,%d,%d)", r, g, b)
     end
     
@@ -385,7 +324,7 @@ function ImageProcessor.executeSplit(sourcePath, outputDir, tileWidth, tileHeigh
         -- BANDS MODE:
         -- Add bands on top/bottom to fill the tile height
         
-        local bgColor = formatColor(params.backgroundColor)
+        local bgColor = formatBgColor()
         logDebug("Background color: " .. bgColor)
         
         if params.enableFrame then
@@ -395,7 +334,7 @@ function ImageProcessor.executeSplit(sourcePath, outputDir, tileWidth, tileHeigh
             -- 3. Add bands on top/bottom with background color
             -- 4. Split into tiles
             
-            local frameColor = formatColor(params.frameColor)
+            local frameColor = formatFrameColor()
             local frameSize = math.max(1, math.min(100, params.frameSize or 10))
             
             logDebug("Frame color: " .. frameColor)
