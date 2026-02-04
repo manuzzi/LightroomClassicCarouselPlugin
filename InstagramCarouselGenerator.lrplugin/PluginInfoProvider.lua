@@ -14,6 +14,8 @@ local LrSystemInfo = import 'LrSystemInfo'
 local LrColor = import 'LrColor'
 local LrDialogs = import 'LrDialogs'
 local LrFunctionContext = import 'LrFunctionContext'
+local LrPrefs = import 'LrPrefs'
+local LrBinding = import 'LrBinding'
 
 local pluginInfoProvider = {}
 
@@ -26,11 +28,8 @@ end
 
 --------------------------------------------------------------------------------
 -- ImageMagick Path Detection for macOS
--- On macOS, ImageMagick installed via Homebrew may not be in the system PATH
--- when launched from Lightroom. We search common installation locations.
 
 local function findImageMagickOnMac()
-    -- Common paths where ImageMagick might be installed on macOS
     local commonPaths = {
         "/opt/homebrew/bin",     -- Homebrew on Apple Silicon
         "/usr/local/bin",        -- Homebrew on Intel Macs
@@ -48,8 +47,6 @@ local function findImageMagickOnMac()
             magickCmd = "magick"
         end
         
-        -- Check if the magick command exists and works
-        -- Note: 2>/dev/null is Unix shell syntax (safe since this function is only called on macOS)
         local command = magickCmd .. " -version 2>/dev/null"
         local handle = io.popen(command)
         if handle then
@@ -57,14 +54,13 @@ local function findImageMagickOnMac()
             handle:close()
             
             if output and (string.find(output, "ImageMagick") or string.find(output, "Version")) then
-                -- Extract version if possible
                 local version = output:match("Version: ImageMagick ([%d%.%-]+)")
                 return true, version, basePath
             end
         end
     end
     
-    -- Fallback: try to find 'convert' command (older ImageMagick or legacy symlink)
+    -- Fallback: try to find 'convert' command
     for _, basePath in ipairs(commonPaths) do
         local convertCmd
         if basePath ~= "" then
@@ -73,7 +69,6 @@ local function findImageMagickOnMac()
             convertCmd = "convert"
         end
         
-        -- Check if the convert command exists and works
         local command = convertCmd .. " -version 2>/dev/null"
         local handle = io.popen(command)
         if handle then
@@ -81,7 +76,6 @@ local function findImageMagickOnMac()
             handle:close()
             
             if output and (string.find(output, "ImageMagick") or string.find(output, "Version")) then
-                -- Extract version if possible
                 local version = output:match("Version: ImageMagick ([%d%.%-]+)")
                 return true, version, basePath
             end
@@ -92,14 +86,11 @@ local function findImageMagickOnMac()
 end
 
 --------------------------------------------------------------------------------
--- Check ImageMagick availability with path-aware detection
+-- Check ImageMagick availability
 
 local function checkImageMagick()
-    -- Note: LrTasks.pcall returns (success, firstReturnValue) so we need to
-    -- return all values as a table to preserve them
     local success, result = LrTasks.pcall(function()
         if isWindows() then
-            -- Windows: try 'magick' command
             local command = 'magick -version'
             local handle = io.popen(command)
             if handle then
@@ -113,7 +104,6 @@ local function checkImageMagick()
             end
             return { installed = false, version = nil, path = nil }
         else
-            -- macOS/Unix: use path-aware detection
             local installed, version, path = findImageMagickOnMac()
             return { installed = installed, version = version, path = path }
         end
@@ -127,7 +117,7 @@ local function checkImageMagick()
 end
 
 --------------------------------------------------------------------------------
--- Test ImageMagick function - runs a simple command to verify it works
+-- Test ImageMagick function
 
 local function testImageMagick()
     LrFunctionContext.callWithContext("testImageMagick", function(context)
@@ -172,9 +162,9 @@ local function testImageMagick()
                 convertCmd = "magick"
             else
                 if path and path ~= "" then
-                    convertCmd = path .. "/convert"
+                    convertCmd = path .. "/magick"
                 else
-                    convertCmd = "convert"
+                    convertCmd = "magick"
                 end
                 testCommand = convertCmd .. ' -version 2>/dev/null'
             end
@@ -214,6 +204,12 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
     local imageMagickInstalled, imageMagickVersion, imageMagickPath = checkImageMagick()
     local isWindowsPlatform = isWindows()
     
+    -- Get current log level preference
+    local prefs = LrPrefs.prefsForPlugin()
+    if not prefs.logLevel then
+        prefs.logLevel = "info"  -- Default
+    end
+    
     return {
         {
             title = "Instagram Carousel Generator",
@@ -228,7 +224,7 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             f:spacer { height = 10 },
             
             f:static_text {
-                title = "Version 1.1.0",
+                title = "Version 1.2.0",
                 font = '<system/bold>',
             },
             
@@ -314,6 +310,40 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
                         testImageMagick()
                     end,
                 },
+            },
+        },
+        
+        {
+            title = "Logging Settings",
+            
+            f:row {
+                f:static_text {
+                    title = "Log Level:",
+                    width = 80,
+                },
+                
+                f:popup_menu {
+                    value = LrView.bind {
+                        key = 'logLevel',
+                        bind_to_object = prefs,
+                    },
+                    items = {
+                        { title = "Debug (verbose)", value = "debug" },
+                        { title = "Info (default)", value = "info" },
+                        { title = "Warning", value = "warn" },
+                        { title = "Error only", value = "error" },
+                    },
+                    immediate = true,
+                },
+            },
+            
+            f:spacer { height = 5 },
+            
+            f:static_text {
+                title = "Set to 'Debug' for detailed logging when troubleshooting issues.\nLogs can be viewed in Lightroom's Console (Help > System Info > Show Log File).",
+                fill_horizontal = 1,
+                width_in_chars = 50,
+                height_in_lines = 2,
             },
         },
     }

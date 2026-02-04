@@ -18,10 +18,44 @@ local LrFileUtils = import 'LrFileUtils'
 local LrPathUtils = import 'LrPathUtils'
 local LrApplication = import 'LrApplication'
 local LrSystemInfo = import 'LrSystemInfo'
+local LrPrefs = import 'LrPrefs'
 
 -- Create a logger for this module
 local logger = LrLogger('InstagramCarouselExportService')
 logger:enable("print")
+
+--------------------------------------------------------------------------------
+-- Logging Helpers (matches ImageProcessor)
+
+local function getLogLevel()
+    local prefs = LrPrefs.prefsForPlugin()
+    return prefs.logLevel or "info"
+end
+
+local function logDebug(message)
+    local level = getLogLevel()
+    if level == "debug" then
+        logger:info("[DEBUG] " .. message)
+    end
+end
+
+local function logInfo(message)
+    local level = getLogLevel()
+    if level == "debug" or level == "info" then
+        logger:info("[INFO] " .. message)
+    end
+end
+
+local function logWarn(message)
+    local level = getLogLevel()
+    if level == "debug" or level == "info" or level == "warn" then
+        logger:warn("[WARN] " .. message)
+    end
+end
+
+local function logError(message)
+    logger:error("[ERROR] " .. message)
+end
 
 --------------------------------------------------------------------------------
 -- Export Service Provider Definition
@@ -270,6 +304,60 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
 end
 
 --------------------------------------------------------------------------------
+-- Get image dimensions using ImageMagick (more reliable than Lightroom)
+
+local function getImageDimensionsFromFile(imagePath)
+    local isWindows = string.find(string.lower(LrSystemInfo.osVersion()), "windows") ~= nil
+    
+    -- Find ImageMagick
+    local magickCmd = "magick"
+    if not isWindows then
+        local commonPaths = {"/opt/homebrew/bin", "/usr/local/bin", "/opt/local/bin", ""}
+        for _, basePath in ipairs(commonPaths) do
+            local cmd = basePath ~= "" and (basePath .. "/magick") or "magick"
+            local testCmd = cmd .. " -version 2>/dev/null"
+            local handle = io.popen(testCmd)
+            if handle then
+                local output = handle:read("*a")
+                handle:close()
+                if output and string.find(output, "ImageMagick") then
+                    magickCmd = cmd
+                    break
+                end
+            end
+        end
+    end
+    
+    -- Use identify to get dimensions
+    local escPath
+    if isWindows then
+        escPath = '"' .. imagePath:gsub('"', '""') .. '"'
+    else
+        escPath = "'" .. imagePath:gsub("'", "'\\''") .. "'"
+    end
+    
+    local command = magickCmd .. ' identify -format "%w %h" ' .. escPath .. ' 2>&1'
+    logDebug("Getting dimensions with: " .. command)
+    
+    local handle = io.popen(command)
+    if handle then
+        local output = handle:read("*a")
+        handle:close()
+        
+        logDebug("Identify output: " .. tostring(output))
+        
+        if output then
+            local width, height = output:match("(%d+)%s+(%d+)")
+            if width and height then
+                return tonumber(width), tonumber(height)
+            end
+        end
+    end
+    
+    return nil, nil
+end
+
+--------------------------------------------------------------------------------
 -- Process Rendered Photos
 
 function exportServiceProvider.processRenderedPhotos(functionContext, exportContext)
@@ -279,16 +367,22 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
     -- Import the image processor
     local ImageProcessor = require 'ImageProcessor'
     
-    logger:info("Processing rendered photos for Instagram carousel")
-    logger:info(string.format("Tile size: %dx%d", exportParams.carouselWidth, exportParams.carouselHeight))
-    logger:info(string.format("Seamless mode: %s", tostring(exportParams.seamlessMode)))
-    logger:info(string.format("Aspect ratio: %s", exportParams.aspectRatio))
-    logger:info(string.format("Overflow handling: %s", exportParams.overflowHandling))
+    logInfo("========================================")
+    logInfo("Starting Instagram Carousel Export")
+    logInfo("========================================")
+    logInfo("Tile size: " .. exportParams.carouselWidth .. "x" .. exportParams.carouselHeight)
+    logInfo("Seamless mode: " .. tostring(exportParams.seamlessMode))
+    logInfo("Aspect ratio: " .. exportParams.aspectRatio)
+    logInfo("Overflow handling: " .. exportParams.overflowHandling)
+    logDebug("Background color: R=" .. tostring(exportParams.backgroundColor.r) .. 
+             " G=" .. tostring(exportParams.backgroundColor.g) .. 
+             " B=" .. tostring(exportParams.backgroundColor.b))
+    logDebug("Enable frame: " .. tostring(exportParams.enableFrame))
     
     -- Get the photos to be exported
     local nPhotos = exportSession:countRenditions()
     
-    logger:info(string.format("Number of photos to export: %d", nPhotos))
+    logInfo("Number of photos to export: " .. nPhotos)
     
     -- Progress scope
     local progressScope = LrDialogs.showModalProgressDialog({
@@ -309,77 +403,126 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
         local success, pathOrMessage = rendition:waitForRender()
         
         if success then
-            logger:info(string.format("Successfully rendered photo %d: %s", i, pathOrMessage))
+            logInfo("Successfully rendered photo " .. i .. ": " .. pathOrMessage)
             
             -- If seamless mode is enabled, split the image into tiles
             if exportParams.seamlessMode then
-                logger:info("Seamless mode enabled - splitting image into carousel tiles")
+                logInfo("Seamless mode enabled - splitting image into carousel tiles")
                 
-                -- Get the directory of the exported file
-                local exportDir = LrPathUtils.parent(pathOrMessage)
-                local fileName = LrPathUtils.leafName(pathOrMessage)
-                local baseName = LrPathUtils.removeExtension(fileName)
+                -- Step 1: Get the dimensions of the rendered image
+                logDebug("Step 1: Getting source image dimensions...")
+                local sourceWidth, sourceHeight = getImageDimensionsFromFile(pathOrMessage)
                 
-                -- Create output directory for tiles
-                local tileDir = LrPathUtils.child(exportDir, baseName .. "_carousel")
-                LrFileUtils.createDirectory(tileDir)
-                
-                -- Split the image
-                local tiles, errorMsg = ImageProcessor.splitImageIntoTiles(
-                    pathOrMessage,
-                    tileDir,
-                    exportParams.carouselWidth,
-                    exportParams.carouselHeight,
-                    {
-                        overflowHandling = exportParams.overflowHandling,
-                        backgroundColor = exportParams.backgroundColor,
-                        frameColor = exportParams.frameColor,
-                        frameSize = exportParams.frameSize,
-                        enableFrame = exportParams.enableFrame,
-                    }
-                )
-                
-                if tiles and #tiles > 0 then
-                    logger:info(string.format("Successfully created %d carousel tiles", #tiles))
-                    
-                    -- Delete the original exported file since we have tiles
-                    LrFileUtils.delete(pathOrMessage)
-                else
-                    logger:warn("Failed to split image into tiles - keeping original export")
-                    
-                    -- Provide detailed error message
-                    local errorDetails = errorMsg or "Unknown error"
-                    local platform = string.find(string.lower(LrSystemInfo.osVersion()), "windows") and "Windows" or "macOS"
-                    
-                    local messageText
-                    if string.find(errorDetails, "not installed") or string.find(errorDetails, "not in PATH") then
-                        messageText = "Could not split image into carousel tiles. ImageMagick is not installed or not accessible.\n\n" ..
-                                    "Original file has been exported without splitting.\n\n" ..
-                                    "To enable image splitting, please install ImageMagick:\n"
-                        if platform == "Windows" then
-                            messageText = messageText .. 
-                                        "- Download from https://imagemagick.org\n" ..
-                                        "- During installation, make sure to check 'Add to PATH'\n" ..
-                                        "- Restart Lightroom after installation"
-                        else
-                            messageText = messageText ..
-                                        "- Install via Homebrew: brew install imagemagick\n" ..
-                                        "- Or download from https://imagemagick.org\n" ..
-                                        "- Restart Lightroom after installation"
+                if not sourceWidth or not sourceHeight then
+                    -- Fallback: try to use the photo's dimensions from Lightroom
+                    local photo = rendition.photo
+                    if photo then
+                        local dimensions = photo:getRawMetadata('dimensions')
+                        if dimensions then
+                            -- Note: These are original dimensions, not exported
+                            logWarn("Could not get exported dimensions, using original: " .. 
+                                   dimensions.width .. "x" .. dimensions.height)
+                            -- For panoramas, assume the width is proportionally larger
+                            sourceWidth = dimensions.width
+                            sourceHeight = dimensions.height
                         end
-                    else
-                        messageText = "Could not split image into carousel tiles.\n\n" ..
-                                    "Error: " .. errorDetails .. "\n\n" ..
-                                    "Original file has been exported without splitting."
                     end
+                end
+                
+                if not sourceWidth or not sourceHeight then
+                    logError("Could not determine source image dimensions")
+                    LrDialogs.message("Warning", 
+                        "Could not determine image dimensions.\n\n" ..
+                        "Please ensure ImageMagick is installed and accessible.\n\n" ..
+                        "Original file has been exported without splitting.",
+                        "warning")
+                else
+                    logInfo("Source dimensions: " .. sourceWidth .. "x" .. sourceHeight)
                     
-                    LrDialogs.message("Warning", messageText, "info")
+                    -- Step 2: Calculate optimal tile count
+                    logDebug("Step 2: Calculating optimal tile count...")
+                    local tileWidth = exportParams.carouselWidth
+                    local tileHeight = exportParams.carouselHeight
+                    
+                    local numTiles = math.ceil(sourceWidth / tileWidth)
+                    numTiles = math.max(1, math.min(numTiles, 10))  -- Instagram limit
+                    
+                    logInfo("Optimal tile count: " .. numTiles .. " (based on " .. 
+                           sourceWidth .. " / " .. tileWidth .. ")")
+                    
+                    -- Get the directory of the exported file
+                    local exportDir = LrPathUtils.parent(pathOrMessage)
+                    local fileName = LrPathUtils.leafName(pathOrMessage)
+                    local baseName = LrPathUtils.removeExtension(fileName)
+                    
+                    -- Create output directory for tiles
+                    local tileDir = LrPathUtils.child(exportDir, baseName .. "_carousel")
+                    LrFileUtils.createDirectory(tileDir)
+                    
+                    logDebug("Tile output directory: " .. tileDir)
+                    
+                    -- Step 3 & 4: Call ImageMagick to split the image
+                    logDebug("Step 3 & 4: Calling ImageMagick to apply processing and split...")
+                    
+                    local tiles, errorMsg = ImageProcessor.splitImageIntoTiles(
+                        pathOrMessage,
+                        tileDir,
+                        tileWidth,
+                        tileHeight,
+                        {
+                            overflowHandling = exportParams.overflowHandling,
+                            backgroundColor = exportParams.backgroundColor,
+                            frameColor = exportParams.frameColor,
+                            frameSize = exportParams.frameSize,
+                            enableFrame = exportParams.enableFrame,
+                            sourceWidth = sourceWidth,
+                            sourceHeight = sourceHeight,
+                        }
+                    )
+                    
+                    if tiles and #tiles > 0 then
+                        logInfo("Successfully created " .. #tiles .. " carousel tiles")
+                        
+                        -- Delete the original exported file since we have tiles
+                        LrFileUtils.delete(pathOrMessage)
+                        logDebug("Deleted original export: " .. pathOrMessage)
+                    else
+                        logWarn("Failed to split image into tiles - keeping original export")
+                        
+                        -- Provide detailed error message
+                        local errorDetails = errorMsg or "Unknown error"
+                        local platform = string.find(string.lower(LrSystemInfo.osVersion()), "windows") and "Windows" or "macOS"
+                        
+                        local messageText
+                        if string.find(errorDetails, "not installed") or string.find(errorDetails, "not in PATH") then
+                            messageText = "Could not split image into carousel tiles. ImageMagick is not installed or not accessible.\n\n" ..
+                                        "Original file has been exported without splitting.\n\n" ..
+                                        "To enable image splitting, please install ImageMagick:\n"
+                            if platform == "Windows" then
+                                messageText = messageText .. 
+                                            "- Download from https://imagemagick.org\n" ..
+                                            "- During installation, make sure to check 'Add to PATH'\n" ..
+                                            "- Restart Lightroom after installation"
+                            else
+                                messageText = messageText ..
+                                            "- Install via Homebrew: brew install imagemagick\n" ..
+                                            "- Or download from https://imagemagick.org\n" ..
+                                            "- Restart Lightroom after installation"
+                            end
+                        else
+                            messageText = "Could not split image into carousel tiles.\n\n" ..
+                                        "Error: " .. errorDetails .. "\n\n" ..
+                                        "Original file has been exported without splitting."
+                        end
+                        
+                        LrDialogs.message("Warning", messageText, "info")
+                    end
                 end
             else
-                logger:info("Seamless mode disabled - exporting as single image")
+                logInfo("Seamless mode disabled - exporting as single image")
             end
         else
-            logger:error(string.format("Failed to export photo %d: %s", i, pathOrMessage))
+            logError("Failed to export photo " .. i .. ": " .. pathOrMessage)
         end
     end
     
@@ -388,7 +531,9 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
         progressScope:done()
     end
     
-    logger:info("Export complete")
+    logInfo("========================================")
+    logInfo("Export complete")
+    logInfo("========================================")
 end
 
 --------------------------------------------------------------------------------

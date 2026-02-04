@@ -4,7 +4,7 @@ ImageProcessor.lua
 Image Processing Utilities for Instagram Carousel Generation
 
 This module provides utilities for splitting and processing images
-for Instagram carousel posts.
+for Instagram carousel posts using ImageMagick.
 
 ------------------------------------------------------------------------------]]
 
@@ -12,11 +12,33 @@ local LrLogger = import 'LrLogger'
 local LrFileUtils = import 'LrFileUtils'
 local LrPathUtils = import 'LrPathUtils'
 local LrTasks = import 'LrTasks'
-local LrApplication = import 'LrApplication'
+local LrPrefs = import 'LrPrefs'
 local LrSystemInfo = import 'LrSystemInfo'
 
+-- Create a logger for this module
 local logger = LrLogger('ImageProcessor')
-logger:enable("print")
+
+-- Get log level from preferences (default to INFO)
+local function getLogLevel()
+    local prefs = LrPrefs.prefsForPlugin()
+    return prefs.logLevel or "info"
+end
+
+-- Enable logging based on preference
+local function updateLogLevel()
+    local level = getLogLevel()
+    if level == "debug" then
+        logger:enable("print")  -- Enable all logging
+    elseif level == "info" then
+        logger:enable("print")
+    elseif level == "warn" then
+        logger:enable("print")
+    else
+        logger:enable("print")
+    end
+end
+
+updateLogLevel()
 
 local ImageProcessor = {}
 
@@ -24,7 +46,6 @@ local ImageProcessor = {}
 -- Platform Detection
 
 local function isWindows()
-    -- Use Lightroom SDK's platform detection
     local platform = LrSystemInfo.osVersion()
     return string.find(platform:lower(), "windows") ~= nil
 end
@@ -32,15 +53,40 @@ end
 local WIN_ENV = isWindows()
 
 --------------------------------------------------------------------------------
--- ImageMagick Path Detection for macOS
--- On macOS, ImageMagick installed via Homebrew may not be in the system PATH
--- when launched from Lightroom. We search common installation locations.
+-- Logging Helpers
 
-local imageMagickPath = nil  -- Cache the found path
-local imageMagickCmd = nil   -- Cache the command name (magick or convert)
+local function logDebug(message)
+    local level = getLogLevel()
+    if level == "debug" then
+        logger:info("[DEBUG] " .. message)
+    end
+end
+
+local function logInfo(message)
+    local level = getLogLevel()
+    if level == "debug" or level == "info" then
+        logger:info("[INFO] " .. message)
+    end
+end
+
+local function logWarn(message)
+    local level = getLogLevel()
+    if level == "debug" or level == "info" or level == "warn" then
+        logger:warn("[WARN] " .. message)
+    end
+end
+
+local function logError(message)
+    logger:error("[ERROR] " .. message)
+end
+
+--------------------------------------------------------------------------------
+-- ImageMagick Path Detection
+
+local imageMagickPath = nil
+local imageMagickCmd = nil
 
 local function findImageMagickOnMac()
-    -- Common paths where ImageMagick might be installed on macOS
     local commonPaths = {
         "/opt/homebrew/bin",     -- Homebrew on Apple Silicon
         "/usr/local/bin",        -- Homebrew on Intel Macs
@@ -49,305 +95,201 @@ local function findImageMagickOnMac()
         ""                       -- Empty string = rely on PATH
     }
     
-    -- First try to find 'magick' command (ImageMagick v7+)
+    -- Try 'magick' command first (ImageMagick v7+)
     for _, basePath in ipairs(commonPaths) do
-        local magickCmd
-        if basePath ~= "" then
-            magickCmd = basePath .. "/magick"
-        else
-            magickCmd = "magick"
-        end
+        local cmd = basePath ~= "" and (basePath .. "/magick") or "magick"
+        local command = cmd .. " -version 2>/dev/null"
         
-        -- Check if the magick command exists and works
-        local success, result = LrTasks.pcall(function()
-            local command = magickCmd .. " -version 2>/dev/null"
-            local handle = io.popen(command)
-            if handle then
-                local output = handle:read("*a")
-                handle:close()
-                
-                if output and (string.find(output, "ImageMagick") or string.find(output, "Version")) then
-                    return true
-                end
-            end
-            return false
-        end)
-        
-        if success and result then
-            logger:info("Found ImageMagick 'magick' at: " .. (basePath ~= "" and basePath or "system PATH"))
-            return basePath, "magick"
-        end
-    end
-    
-    -- Fallback: try to find 'convert' command (older ImageMagick or legacy symlink)
-    for _, basePath in ipairs(commonPaths) do
-        local convertCmd
-        if basePath ~= "" then
-            convertCmd = basePath .. "/convert"
-        else
-            convertCmd = "convert"
-        end
-        
-        -- Check if the convert command exists and works
-        local success, result = LrTasks.pcall(function()
-            local command = convertCmd .. " -version 2>/dev/null"
-            local handle = io.popen(command)
-            if handle then
-                local output = handle:read("*a")
-                handle:close()
-                
-                if output and (string.find(output, "ImageMagick") or string.find(output, "Version")) then
-                    return true
-                end
-            end
-            return false
-        end)
-        
-        if success and result then
-            logger:info("Found ImageMagick 'convert' at: " .. (basePath ~= "" and basePath or "system PATH"))
-            return basePath, "convert"
-        end
-    end
-    
-    return nil, nil
-end
-
-local function getImageMagickCommand(commandName)
-    -- For Windows, use 'magick' command (ImageMagick v7+)
-    if WIN_ENV then
-        if commandName == "convert" or commandName == "identify" then
-            -- On Windows with ImageMagick v7, use 'magick' for all operations
-            return "magick"
-        end
-        return "magick"
-    end
-    
-    -- For macOS/Unix, find the ImageMagick path if not already cached
-    -- imageMagickPath states: nil = not checked, false = checked and not found, string = found path
-    if imageMagickPath == nil then
-        local path, cmd = findImageMagickOnMac()
-        imageMagickPath = path or false
-        imageMagickCmd = cmd or "convert"
-    end
-    
-    -- Determine which command to use
-    local actualCmd
-    if imageMagickCmd == "magick" then
-        -- Using modern ImageMagick v7 - 'magick' command handles everything
-        actualCmd = "magick"
-    else
-        -- Using older ImageMagick or 'convert' command
-        actualCmd = commandName
-    end
-    
-    if imageMagickPath and imageMagickPath ~= "" then
-        return imageMagickPath .. "/" .. actualCmd
-    else
-        -- Not found or found in system PATH - use command name directly
-        return actualCmd
-    end
-end
-
---------------------------------------------------------------------------------
--- Constants
-
--- Output tile name pattern - uses zero-padded two-digit numbering (00, 01, 02, ...)
-local TILE_NAME_PATTERN = "tile_%02d.jpg"
-
---------------------------------------------------------------------------------
--- Helper function to escape shell arguments
-
-local function escapeShellArg(arg)
-    -- Escape shell arguments to prevent command injection
-    if WIN_ENV then
-        -- Windows: escape quotes and wrap in quotes
-        return '"' .. arg:gsub('"', '""') .. '"'
-    else
-        -- Unix: use single quotes and escape any single quotes
-        return "'" .. arg:gsub("'", "'\\''") .. "'"
-    end
-end
-
---------------------------------------------------------------------------------
--- Check if ImageMagick is installed and available
-
-function ImageProcessor.checkImageMagickAvailable()
-    -- Try to run ImageMagick version command
-    local success, result = LrTasks.pcall(function()
-        local command
-        if WIN_ENV then
-            -- Windows: try 'magick' command
-            command = 'magick -version'
-        else
-            -- Unix/macOS: use path-aware convert command
-            local convertCmd = getImageMagickCommand("convert")
-            command = convertCmd .. ' -version 2>/dev/null'
-        end
-        
-        local handle = io.popen(command)
-        if handle then
-            local output = handle:read("*a")
-            local exitCode = handle:close()
-            
-            -- Check if output contains "ImageMagick" or "Version"
-            if output and (string.find(output, "ImageMagick") or string.find(output, "Version")) then
-                logger:info("ImageMagick detected: " .. output:sub(1, 100))
-                return true
-            end
-        end
-        return false
-    end)
-    
-    if success and result then
-        return true
-    else
-        logger:warn("ImageMagick not detected on system")
-        return false
-    end
-end
-
---------------------------------------------------------------------------------
--- Helper function to get image dimensions from file
--- This uses external tools if available, or returns nil
-
-function ImageProcessor.getImageDimensions(imagePath)
-    -- Try to use ImageMagick's identify command if available
-    -- Note: LrTasks.pcall returns (success, firstReturnValue) so we need to
-    -- return dimensions as a table to preserve both width and height
-    local success, result = LrTasks.pcall(function()
-        local command
-        if WIN_ENV then
-            command = 'magick identify -format "%w %h" ' .. escapeShellArg(imagePath)
-        else
-            local identifyCmd = getImageMagickCommand("identify")
-            command = identifyCmd .. ' -format "%w %h" ' .. escapeShellArg(imagePath) .. ' 2>/dev/null'
-        end
-        
-        logger:info("Getting image dimensions with command: " .. command)
+        logDebug("Checking for magick at: " .. cmd)
         
         local handle = io.popen(command)
         if handle then
             local output = handle:read("*a")
             handle:close()
             
-            logger:info("identify output: " .. tostring(output))
-            
-            if output then
-                local width, height = output:match("(%d+)%s+(%d+)")
-                if width and height then
-                    -- Return as table to preserve both values through pcall
-                    return { width = tonumber(width), height = tonumber(height) }
-                end
+            if output and string.find(output, "ImageMagick") then
+                logInfo("Found ImageMagick 'magick' at: " .. (basePath ~= "" and basePath or "system PATH"))
+                return basePath, "magick"
             end
         end
-        return nil
-    end)
-    
-    if success and result and type(result) == "table" and result.width and result.height then
-        logger:info(string.format("Image dimensions: %dx%d", result.width, result.height))
-        return result.width, result.height
     end
     
-    logger:warn("Could not determine image dimensions")
+    -- Fallback to 'convert' command
+    for _, basePath in ipairs(commonPaths) do
+        local cmd = basePath ~= "" and (basePath .. "/convert") or "convert"
+        local command = cmd .. " -version 2>/dev/null"
+        
+        logDebug("Checking for convert at: " .. cmd)
+        
+        local handle = io.popen(command)
+        if handle then
+            local output = handle:read("*a")
+            handle:close()
+            
+            if output and string.find(output, "ImageMagick") then
+                logInfo("Found ImageMagick 'convert' at: " .. (basePath ~= "" and basePath or "system PATH"))
+                return basePath, "convert"
+            end
+        end
+    end
+    
     return nil, nil
 end
 
+local function getImageMagickCommand()
+    if WIN_ENV then
+        return "magick"
+    end
+    
+    if imageMagickPath == nil then
+        local path, cmd = findImageMagickOnMac()
+        imageMagickPath = path or false
+        imageMagickCmd = cmd or "magick"
+    end
+    
+    if imageMagickPath and imageMagickPath ~= "" then
+        return imageMagickPath .. "/" .. imageMagickCmd
+    else
+        return imageMagickCmd or "magick"
+    end
+end
+
 --------------------------------------------------------------------------------
--- Split image into carousel tiles
+-- Shell Argument Escaping
+
+local function escapeShellArg(arg)
+    if WIN_ENV then
+        return '"' .. arg:gsub('"', '""') .. '"'
+    else
+        return "'" .. arg:gsub("'", "'\\''") .. "'"
+    end
+end
+
+--------------------------------------------------------------------------------
+-- Check ImageMagick Availability
+
+function ImageProcessor.checkImageMagickAvailable()
+    local cmd = getImageMagickCommand()
+    local command = cmd .. " -version 2>&1"
+    
+    logDebug("Checking ImageMagick with command: " .. command)
+    
+    local handle = io.popen(command)
+    if handle then
+        local output = handle:read("*a")
+        handle:close()
+        
+        if output and string.find(output, "ImageMagick") then
+            logInfo("ImageMagick is available")
+            return true
+        end
+    end
+    
+    logWarn("ImageMagick not available")
+    return false
+end
+
+--------------------------------------------------------------------------------
+-- Split Panoramic Image into Carousel Tiles
+-- 
+-- This function takes a rendered image and splits it into carousel tiles
+-- based on the target tile size and user preferences.
+--
+-- Parameters:
+--   sourcePath: Path to the source image (already rendered by Lightroom)
+--   outputDir: Directory to save the tiles
+--   tileWidth: Target width of each tile
+--   tileHeight: Target height of each tile
+--   params: Table with additional parameters:
+--     - overflowHandling: 'addBands' or 'crop'
+--     - backgroundColor: {r, g, b} values from 0-1
+--     - frameColor: {r, g, b} values from 0-1
+--     - frameSize: Frame size in pixels
+--     - enableFrame: Boolean to enable frame
+--     - sourceWidth: Width of source image (from Lightroom)
+--     - sourceHeight: Height of source image (from Lightroom)
 
 function ImageProcessor.splitImageIntoTiles(sourcePath, outputDir, tileWidth, tileHeight, params)
-    logger:info(string.format("Splitting image: %s", sourcePath))
-    logger:info(string.format("Tile size: %dx%d", tileWidth, tileHeight))
+    logInfo("=== Starting tile split operation ===")
+    logInfo("Source: " .. sourcePath)
+    logInfo("Output directory: " .. outputDir)
+    logInfo("Target tile size: " .. tileWidth .. "x" .. tileHeight)
+    logDebug("Overflow handling: " .. tostring(params.overflowHandling))
+    logDebug("Enable frame: " .. tostring(params.enableFrame))
     
-    -- First, check if ImageMagick is available
+    -- Check ImageMagick
     if not ImageProcessor.checkImageMagickAvailable() then
-        logger:error("ImageMagick is not available on this system")
+        logError("ImageMagick is not available")
         return nil, "ImageMagick not installed or not in PATH"
     end
     
-    local tiles = {}
+    -- Get source dimensions from params (passed from Lightroom export)
+    local sourceWidth = params.sourceWidth
+    local sourceHeight = params.sourceHeight
     
-    -- Get source image dimensions
-    local sourceWidth, sourceHeight = ImageProcessor.getImageDimensions(sourcePath)
+    logInfo("Source image dimensions: " .. sourceWidth .. "x" .. sourceHeight)
     
-    if not sourceWidth or not sourceHeight then
-        logger:warn("Could not determine source image dimensions")
-        return nil, "Could not determine image dimensions"
-    end
-    
-    logger:info(string.format("Source image size: %dx%d", sourceWidth, sourceHeight))
-    
-    -- Calculate number of tiles needed
+    -- Calculate the number of tiles based on source image width
+    -- The image is already rendered at the correct height by Lightroom
     local numTiles = math.ceil(sourceWidth / tileWidth)
     
-    logger:info(string.format("Number of tiles: %d", numTiles))
+    -- Ensure at least 1 tile and maximum 10 (Instagram carousel limit)
+    numTiles = math.max(1, math.min(numTiles, 10))
     
-    -- Check if we need to handle overflow
+    logInfo("Calculated number of tiles: " .. numTiles)
+    
+    -- Calculate total width needed for all tiles
     local totalWidth = numTiles * tileWidth
-    local widthDiff = totalWidth - sourceWidth
     
-    if widthDiff > 0 then
-        logger:info(string.format("Image needs %d px of padding/cropping", widthDiff))
-        
-        if params.overflowHandling == 'crop' then
-            -- Crop the image to fit perfectly
-            sourceWidth = sourceWidth - (sourceWidth % tileWidth)
-            numTiles = sourceWidth / tileWidth
-            logger:info(string.format("Cropping to %dx%d for perfect fit", sourceWidth, sourceHeight))
-        else
-            -- Add bands (handled in the tile creation step)
-            logger:info("Will add bands to fit perfectly")
-        end
-    end
+    logDebug("Total width for tiles: " .. totalWidth)
     
-    -- Generate tile splits using ImageMagick if available
-    local success, error = ImageProcessor.splitWithImageMagick(
-        sourcePath, 
-        outputDir, 
-        tileWidth, 
-        tileHeight, 
+    -- Execute the split
+    local success, errorMsg = ImageProcessor.executeSplit(
+        sourcePath,
+        outputDir,
+        tileWidth,
+        tileHeight,
         numTiles,
+        totalWidth,
         params
     )
     
-    if success then
-        -- Collect generated tile paths
-        for i = 0, numTiles - 1 do
-            local tilePath = LrPathUtils.child(outputDir, string.format(TILE_NAME_PATTERN, i))
-            if LrFileUtils.exists(tilePath) then
-                table.insert(tiles, tilePath)
-            end
+    if not success then
+        logError("Split failed: " .. (errorMsg or "Unknown error"))
+        return nil, errorMsg
+    end
+    
+    -- Collect generated tiles
+    local tiles = {}
+    for i = 0, numTiles - 1 do
+        local tilePath = LrPathUtils.child(outputDir, string.format("tile_%02d.jpg", i))
+        if LrFileUtils.exists(tilePath) then
+            table.insert(tiles, tilePath)
+            logDebug("Found tile: " .. tilePath)
+        else
+            logWarn("Expected tile not found: " .. tilePath)
         end
     end
     
+    logInfo("Successfully created " .. #tiles .. " tiles")
     return tiles
 end
 
 --------------------------------------------------------------------------------
--- Split image using ImageMagick
+-- Execute the ImageMagick split command
 
-function ImageProcessor.splitWithImageMagick(sourcePath, outputDir, tileWidth, tileHeight, numTiles, params)
-    local baseName = LrPathUtils.leafName(sourcePath)
-    local nameWithoutExt = LrPathUtils.removeExtension(baseName)
-    
-    -- Get the ImageMagick command (magick or convert depending on version)
-    local imageMagickBaseCmd = getImageMagickCommand("convert")
-    
-    -- Calculate total width for all tiles
-    local totalWidth = tileWidth * numTiles
-    
-    -- Build the output path pattern
-    -- Using tile_%02d.jpg format for zero-padded numbering
+function ImageProcessor.executeSplit(sourcePath, outputDir, tileWidth, tileHeight, numTiles, totalWidth, params)
+    local magickCmd = getImageMagickCommand()
     local outputPattern = LrPathUtils.child(outputDir, "tile_%02d.jpg")
     
-    -- Construct ImageMagick command for splitting
-    -- Based on the working command:
+    -- Build the ImageMagick command
+    -- Command structure based on working example:
     -- magick input.jpg -resize x{height} -gravity center -crop {totalWidth}x{height}+0+0 +repage -crop {tileWidth}x{height} +repage +adjoin tiles_%02d.jpg
+    
     local command
     
     if params.overflowHandling == 'addBands' then
-        -- Add bands with background color and optional frame
-        -- Clamp color values to valid range [0, 1]
+        -- Add bands mode: resize, add background, optionally add frame, then split
         local function clamp(value)
             return math.max(0, math.min(1, value or 0))
         end
@@ -358,6 +300,8 @@ function ImageProcessor.splitWithImageMagick(sourcePath, outputDir, tileWidth, t
             math.floor(clamp(params.backgroundColor.b) * 255)
         )
         
+        logDebug("Background color: " .. bgColor)
+        
         local frameOpts = ""
         if params.enableFrame then
             local frameColor = string.format("rgb(%d,%d,%d)",
@@ -365,111 +309,64 @@ function ImageProcessor.splitWithImageMagick(sourcePath, outputDir, tileWidth, t
                 math.floor(clamp(params.frameColor.g) * 255),
                 math.floor(clamp(params.frameColor.b) * 255)
             )
-            -- Clamp frame size to reasonable range
             local frameSize = math.max(1, math.min(100, params.frameSize or 10))
             frameOpts = string.format(' -bordercolor "%s" -border %d', frameColor, frameSize)
+            logDebug("Frame options: " .. frameOpts)
         end
         
-        -- Build command to resize, add bands, and split
-        -- The sequence:
-        -- 1. Resize to target height (maintaining aspect ratio)
-        -- 2. Set background color and use -extent to add bands if needed
-        -- 3. Crop to exact total width
-        -- 4. Split into tiles
-        if WIN_ENV then
-            command = string.format(
-                'magick %s -resize x%d -background "%s" -gravity center -extent %dx%d%s -crop %dx%d +repage +adjoin %s',
-                escapeShellArg(sourcePath),
-                tileHeight,
-                bgColor,
-                totalWidth,
-                tileHeight,
-                frameOpts,
-                tileWidth,
-                tileHeight,
-                escapeShellArg(outputPattern)
-            )
-        else
-            command = string.format(
-                '%s %s -resize x%d -background "%s" -gravity center -extent %dx%d%s -crop %dx%d +repage +adjoin %s',
-                imageMagickBaseCmd,
-                escapeShellArg(sourcePath),
-                tileHeight,
-                bgColor,
-                totalWidth,
-                tileHeight,
-                frameOpts,
-                tileWidth,
-                tileHeight,
-                escapeShellArg(outputPattern)
-            )
-        end
+        -- Build command: resize to height, add bands with extent, optionally add frame, split
+        command = string.format(
+            '%s %s -resize x%d -background "%s" -gravity center -extent %dx%d%s -crop %dx%d +repage +adjoin %s',
+            magickCmd,
+            escapeShellArg(sourcePath),
+            tileHeight,
+            bgColor,
+            totalWidth,
+            tileHeight,
+            frameOpts,
+            tileWidth,
+            tileHeight,
+            escapeShellArg(outputPattern)
+        )
     else
-        -- Crop mode - resize to height, crop to exact width, then split
-        if WIN_ENV then
-            command = string.format(
-                'magick %s -resize x%d -gravity center -crop %dx%d+0+0 +repage -crop %dx%d +repage +adjoin %s',
-                escapeShellArg(sourcePath),
-                tileHeight,
-                totalWidth,
-                tileHeight,
-                tileWidth,
-                tileHeight,
-                escapeShellArg(outputPattern)
-            )
-        else
-            command = string.format(
-                '%s %s -resize x%d -gravity center -crop %dx%d+0+0 +repage -crop %dx%d +repage +adjoin %s',
-                imageMagickBaseCmd,
-                escapeShellArg(sourcePath),
-                tileHeight,
-                totalWidth,
-                tileHeight,
-                tileWidth,
-                tileHeight,
-                escapeShellArg(outputPattern)
-            )
-        end
+        -- Crop mode: resize to height, crop to total width, then split
+        command = string.format(
+            '%s %s -resize x%d -gravity center -crop %dx%d+0+0 +repage -crop %dx%d +repage +adjoin %s',
+            magickCmd,
+            escapeShellArg(sourcePath),
+            tileHeight,
+            totalWidth,
+            tileHeight,
+            tileWidth,
+            tileHeight,
+            escapeShellArg(outputPattern)
+        )
     end
     
-    logger:info("Executing ImageMagick command:")
-    logger:info(command)
+    logDebug("Executing command: " .. command)
+    logInfo("Running ImageMagick split command...")
     
-    -- Execute the command and capture both output and error
-    local commandOutput = ""
-    local success, result = LrTasks.pcall(function()
-        local handle = io.popen(command .. " 2>&1")
-        if handle then
-            local output = handle:read("*a")
-            commandOutput = output or ""
-            local exitCode = handle:close()
-            logger:info("ImageMagick output: " .. tostring(output))
-            -- In Lua, handle:close() returns true on success, or nil/false followed by error info on failure
-            -- exitCode == true means success on some Lua versions
-            -- exitCode == 0 means success when exitCode is a number
-            if exitCode == true or exitCode == 0 then
-                return true
-            end
-            -- If there's no output (empty string), it might still be success
-            -- as ImageMagick doesn't always output text on success
-            if output == nil or output == "" then
-                return true
-            end
-            return false
-        end
-        return false
-    end)
+    -- Execute the command
+    local fullCommand = command .. " 2>&1"
+    local handle = io.popen(fullCommand)
     
-    if not success then
-        logger:error("Failed to execute ImageMagick command: pcall failed")
-        return false, "ImageMagick execution failed: " .. tostring(commandOutput)
+    if not handle then
+        logError("Failed to execute command")
+        return false, "Failed to execute ImageMagick command"
     end
     
-    if not result then
-        logger:error("ImageMagick command returned error: " .. commandOutput)
-        return false, "ImageMagick error: " .. (commandOutput ~= "" and commandOutput or "Unknown error")
+    local output = handle:read("*a") or ""
+    local success = handle:close()
+    
+    logDebug("Command output: " .. output)
+    
+    -- Check for success
+    if output ~= "" and string.find(output:lower(), "error") then
+        logError("ImageMagick error: " .. output)
+        return false, "ImageMagick error: " .. output
     end
     
+    logInfo("ImageMagick command completed successfully")
     return true
 end
 
