@@ -1,0 +1,102 @@
+"$$$/InstagramCarousel/PluginName=Instagram Carousel Generator"
+"$$$/InstagramCarousel/PluginVersion=Version 1.4.0"
+"$$$/InstagramCarousel/ExportServiceName=Instagram Carousel"
+
+"$$$/InstagramCarousel/Section/Main=Instagram Carousel Generator"
+"$$$/InstagramCarousel/Section/Credits=Credits & Support"
+"$$$/InstagramCarousel/Section/ImageMagick=ImageMagick Status"
+"$$$/InstagramCarousel/Section/Logging=Logging Settings"
+
+"$$$/InstagramCarousel/Description=Instagram Carousel Generator helps you create seamless carousel posts for Instagram directly from Adobe Lightroom Classic.\n\nNew features: Aspect ratio presets, image splitting for panoramas, customizable bands and frames."
+
+"$$$/InstagramCarousel/Label/DevelopedBy=Developed by:"
+"$$$/InstagramCarousel/Label/Email=Email:"
+"$$$/InstagramCarousel/Label/Website=Website:"
+"$$$/InstagramCarousel/Label/GitHub=GitHub:"
+"$$$/InstagramCarousel/Label/PayPal=PayPal:"
+"$$$/InstagramCarousel/Label/License=License:"
+
+"$$$/InstagramCarousel/Support/Message=If you find this plugin useful, please consider supporting its development:"
+"$$$/InstagramCarousel/Support/Donate=Donate via PayPal"
+"$$$/InstagramCarousel/License/Text=MIT License - Copyright (c) 2026 Marco Manuzzi"
+"$$$/InstagramCarousel/Credits/ImageMagick=This plugin uses ImageMagick® for image processing:"
+"$$$/InstagramCarousel/License/ImageMagick=License: Apache 2.0 License"
+
+"$$$/InstagramCarousel/Label/Status=Status:"
+"$$$/InstagramCarousel/Label/Version=Version:"
+"$$$/InstagramCarousel/Label/Location=Location:"
+
+"$$$/InstagramCarousel/Status/Installed=✓ Installed"
+"$$$/InstagramCarousel/Status/NotInstalled=✗ Not Installed"
+"$$$/InstagramCarousel/Status/Unknown=Unknown"
+"$$$/InstagramCarousel/Status/SystemPath=System PATH"
+
+"$$$/InstagramCarousel/ImageMagick/Available=ImageMagick is properly installed. You can use seamless carousel mode to split panoramic images."
+"$$$/InstagramCarousel/ImageMagick/Required=ImageMagick is required for splitting panoramic images into carousel tiles."
+
+"$$$/InstagramCarousel/Button/TestImageMagick=Test ImageMagick"
+
+"$$$/InstagramCarousel/ImageMagick/InstallWindows=To install:\n1. Download from https://imagemagick.org\n2. Run the installer\n3. Make sure to check 'Add to PATH' during installation\n4. Restart Lightroom"
+"$$$/InstagramCarousel/ImageMagick/InstallMac=To install:\n1. Using Homebrew: brew install imagemagick\n2. Or download from https://imagemagick.org\n3. Restart Lightroom after installation"
+"$$$/InstagramCarousel/ImageMagick/NotAccessible=ImageMagick is not installed or not accessible."
+"$$$/InstagramCarousel/ImageMagick/SearchedPaths=Searched paths:\n• /opt/homebrew/bin (Homebrew on Apple Silicon)\n• /usr/local/bin (Homebrew on Intel Macs)\n• /opt/local/bin (MacPorts)\n• /usr/bin (System)\n• System PATH"
+
+"$$$/InstagramCarousel/Dialog/TestFailed=ImageMagick Test Failed"
+"$$$/InstagramCarousel/Dialog/TestSuccess=ImageMagick Test Successful"
+"$$$/InstagramCarousel/ImageMagick/WorkingMsg=ImageMagick is working correctly!\n\nVersion: ^1\nLocation: ^2\n\nYou can use seamless carousel mode to split panoramic images."
+"$$$/InstagramCarousel/ImageMagick/TestFailedMsg=ImageMagick was detected but the test command failed.\n\nPlease try reinstalling ImageMagick and restart Lightroom."
+
+"$$$/InstagramCarousel/Label/LogLevel=Log Level:"
+"$$$/InstagramCarousel/LogLevel/Debug=Debug (verbose)"
+"$$$/InstagramCarousel/LogLevel/Info=Info (default)"
+"$$$/InstagramCarousel/LogLevel/Warn=Warning"
+"$$$/InstagramCarousel/LogLevel/Error=Error only"
+"$$$/InstagramCarousel/Logging/HelpText=Set to 'Debug' for detailed logging when troubleshooting issues.\nLogs can be viewed in Lightroom's Console (Help > System Info > Show Log File)."
+
+"$$$/InstagramCarousel/Export/Section/Carousel=Instagram Carousel Settings"
+"$$$/InstagramCarousel/Export/Section/Overflow=Overflow Handling"
+"$$$/InstagramCarousel/Export/Section/BandFrame=Band & Frame Settings"
+"$$$/InstagramCarousel/Export/Section/AfterExport=After Export"
+
+"$$$/InstagramCarousel/Export/Label/SeamlessMode=Enable Seamless Carousel Mode (split panoramas)"
+"$$$/InstagramCarousel/Export/Label/AspectRatio=Tile Aspect Ratio:"
+"$$$/InstagramCarousel/Export/Label/ShortSideSize=Short Side Size:"
+"$$$/InstagramCarousel/Export/Label/CustomSize=Custom Size:"
+"$$$/InstagramCarousel/Export/Label/TileSize=Tile Size:"
+"$$$/InstagramCarousel/Export/Label/Pixels=px"
+
+"$$$/InstagramCarousel/AspectRatio/4x5=4:5 (Portrait)"
+"$$$/InstagramCarousel/AspectRatio/1x1=1:1 (Square)"
+"$$$/InstagramCarousel/AspectRatio/5x4=5:4 (Landscape)"
+"$$$/InstagramCarousel/AspectRatio/16x9=16:9 (Wide)"
+"$$$/InstagramCarousel/AspectRatio/9x16=9:16 (Vertical)"
+
+"$$$/InstagramCarousel/Size/1080=1080 px (Instagram standard)"
+"$$$/InstagramCarousel/Size/2160=2160 px (2x)"
+"$$$/InstagramCarousel/Size/3240=3240 px (3x)"
+"$$$/InstagramCarousel/Size/4320=4320 px (4x)"
+"$$$/InstagramCarousel/Size/Custom=Custom"
+
+"$$$/InstagramCarousel/Overflow/WhenDoesntFit=When image doesn't fit perfectly:"
+"$$$/InstagramCarousel/Overflow/AddBands=Add bands with optional frame"
+"$$$/InstagramCarousel/Overflow/CropToFit=Crop to fit perfectly"
+
+"$$$/InstagramCarousel/Label/BandColor=Band Color:"
+"$$$/InstagramCarousel/Label/FrameColor=Frame Color:"
+"$$$/InstagramCarousel/Label/EnableFrame=Enable Frame"
+"$$$/InstagramCarousel/Label/FrameSize=Size:"
+
+"$$$/InstagramCarousel/Label/OpenFolder=Open export folder after export"
+
+"$$$/InstagramCarousel/Progress/ExportTitle=Instagram Carousel Export"
+"$$$/InstagramCarousel/Progress/Rendering=Rendering photo ^1 of ^2..."
+"$$$/InstagramCarousel/Progress/Processing=Processing photo ^1 of ^2: splitting into tiles..."
+"$$$/InstagramCarousel/Progress/ReadingDimensions=Photo ^1 of ^2: reading dimensions..."
+"$$$/InstagramCarousel/Progress/CreatingTiles=Photo ^1 of ^2: creating ^3 tiles..."
+
+"$$$/InstagramCarousel/Warning/Title=Warning"
+"$$$/InstagramCarousel/Warning/DimensionsNotDetermined=Could not determine image dimensions.\n\nPlease ensure ImageMagick is installed and accessible.\n\nOriginal file has been exported without splitting."
+"$$$/InstagramCarousel/Warning/ImageMagickNotInstalled=Could not split image into carousel tiles. ImageMagick is not installed or not accessible.\n\nOriginal file has been exported without splitting.\n\nTo enable image splitting, please install ImageMagick:"
+"$$$/InstagramCarousel/Warning/ImageMagickError=Could not split image into carousel tiles.\n\nError: ^1\n\nOriginal file has been exported without splitting."
+
+"$$$/InstagramCarousel/Help/About=About Instagram Carousel Generator"

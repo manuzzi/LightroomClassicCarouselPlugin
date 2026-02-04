@@ -1,0 +1,102 @@
+"$$$/InstagramCarousel/PluginName=Generatore Carosello Instagram"
+"$$$/InstagramCarousel/PluginVersion=Versione 1.4.0"
+"$$$/InstagramCarousel/ExportServiceName=Carosello Instagram"
+
+"$$$/InstagramCarousel/Section/Main=Generatore Carosello Instagram"
+"$$$/InstagramCarousel/Section/Credits=Crediti e Supporto"
+"$$$/InstagramCarousel/Section/ImageMagick=Stato ImageMagick"
+"$$$/InstagramCarousel/Section/Logging=Impostazioni Log"
+
+"$$$/InstagramCarousel/Description=Il Generatore Carosello Instagram ti aiuta a creare post carosello perfetti per Instagram direttamente da Adobe Lightroom Classic.\n\nNuove funzionalità: Preset per rapporti d'aspetto, divisione immagini per panorami, bande e cornici personalizzabili."
+
+"$$$/InstagramCarousel/Label/DevelopedBy=Sviluppato da:"
+"$$$/InstagramCarousel/Label/Email=Email:"
+"$$$/InstagramCarousel/Label/Website=Sito web:"
+"$$$/InstagramCarousel/Label/GitHub=GitHub:"
+"$$$/InstagramCarousel/Label/PayPal=PayPal:"
+"$$$/InstagramCarousel/Label/License=Licenza:"
+
+"$$$/InstagramCarousel/Support/Message=Se trovi utile questo plugin, considera di supportare il suo sviluppo:"
+"$$$/InstagramCarousel/Support/Donate=Dona tramite PayPal"
+"$$$/InstagramCarousel/License/Text=Licenza MIT - Copyright (c) 2026 Marco Manuzzi"
+"$$$/InstagramCarousel/Credits/ImageMagick=Questo plugin utilizza ImageMagick® per l'elaborazione delle immagini:"
+"$$$/InstagramCarousel/License/ImageMagick=Licenza: Apache 2.0 License"
+
+"$$$/InstagramCarousel/Label/Status=Stato:"
+"$$$/InstagramCarousel/Label/Version=Versione:"
+"$$$/InstagramCarousel/Label/Location=Posizione:"
+
+"$$$/InstagramCarousel/Status/Installed=✓ Installato"
+"$$$/InstagramCarousel/Status/NotInstalled=✗ Non Installato"
+"$$$/InstagramCarousel/Status/Unknown=Sconosciuto"
+"$$$/InstagramCarousel/Status/SystemPath=PATH di Sistema"
+
+"$$$/InstagramCarousel/ImageMagick/Available=ImageMagick è installato correttamente. Puoi usare la modalità carosello per dividere le immagini panoramiche."
+"$$$/InstagramCarousel/ImageMagick/Required=ImageMagick è necessario per dividere le immagini panoramiche in riquadri del carosello."
+
+"$$$/InstagramCarousel/Button/TestImageMagick=Testa ImageMagick"
+
+"$$$/InstagramCarousel/ImageMagick/InstallWindows=Per installare:\n1. Scarica da https://imagemagick.org\n2. Esegui il programma di installazione\n3. Assicurati di selezionare 'Aggiungi al PATH' durante l'installazione\n4. Riavvia Lightroom"
+"$$$/InstagramCarousel/ImageMagick/InstallMac=Per installare:\n1. Con Homebrew: brew install imagemagick\n2. Oppure scarica da https://imagemagick.org\n3. Riavvia Lightroom dopo l'installazione"
+"$$$/InstagramCarousel/ImageMagick/NotAccessible=ImageMagick non è installato o non è accessibile."
+"$$$/InstagramCarousel/ImageMagick/SearchedPaths=Percorsi cercati:\n• /opt/homebrew/bin (Homebrew su Apple Silicon)\n• /usr/local/bin (Homebrew su Mac Intel)\n• /opt/local/bin (MacPorts)\n• /usr/bin (Sistema)\n• PATH di Sistema"
+
+"$$$/InstagramCarousel/Dialog/TestFailed=Test ImageMagick Fallito"
+"$$$/InstagramCarousel/Dialog/TestSuccess=Test ImageMagick Riuscito"
+"$$$/InstagramCarousel/ImageMagick/WorkingMsg=ImageMagick funziona correttamente!\n\nVersione: ^1\nPosizione: ^2\n\nPuoi usare la modalità carosello per dividere le immagini panoramiche."
+"$$$/InstagramCarousel/ImageMagick/TestFailedMsg=ImageMagick è stato rilevato ma il comando di test è fallito.\n\nProva a reinstallare ImageMagick e riavvia Lightroom."
+
+"$$$/InstagramCarousel/Label/LogLevel=Livello Log:"
+"$$$/InstagramCarousel/LogLevel/Debug=Debug (dettagliato)"
+"$$$/InstagramCarousel/LogLevel/Info=Info (predefinito)"
+"$$$/InstagramCarousel/LogLevel/Warn=Avviso"
+"$$$/InstagramCarousel/LogLevel/Error=Solo errori"
+"$$$/InstagramCarousel/Logging/HelpText=Imposta su 'Debug' per un log dettagliato durante la risoluzione dei problemi.\nI log possono essere visualizzati nella Console di Lightroom (Aiuto > Info Sistema > Mostra File Log)."
+
+"$$$/InstagramCarousel/Export/Section/Carousel=Impostazioni Carosello Instagram"
+"$$$/InstagramCarousel/Export/Section/Overflow=Gestione Overflow"
+"$$$/InstagramCarousel/Export/Section/BandFrame=Impostazioni Banda e Cornice"
+"$$$/InstagramCarousel/Export/Section/AfterExport=Dopo l'Esportazione"
+
+"$$$/InstagramCarousel/Export/Label/SeamlessMode=Abilita Modalità Carosello (dividi panorami)"
+"$$$/InstagramCarousel/Export/Label/AspectRatio=Rapporto d'Aspetto Riquadro:"
+"$$$/InstagramCarousel/Export/Label/ShortSideSize=Dimensione Lato Corto:"
+"$$$/InstagramCarousel/Export/Label/CustomSize=Dimensione Personalizzata:"
+"$$$/InstagramCarousel/Export/Label/TileSize=Dimensione Riquadro:"
+"$$$/InstagramCarousel/Export/Label/Pixels=px"
+
+"$$$/InstagramCarousel/AspectRatio/4x5=4:5 (Verticale)"
+"$$$/InstagramCarousel/AspectRatio/1x1=1:1 (Quadrato)"
+"$$$/InstagramCarousel/AspectRatio/5x4=5:4 (Orizzontale)"
+"$$$/InstagramCarousel/AspectRatio/16x9=16:9 (Panoramico)"
+"$$$/InstagramCarousel/AspectRatio/9x16=9:16 (Verticale)"
+
+"$$$/InstagramCarousel/Size/1080=1080 px (standard Instagram)"
+"$$$/InstagramCarousel/Size/2160=2160 px (2x)"
+"$$$/InstagramCarousel/Size/3240=3240 px (3x)"
+"$$$/InstagramCarousel/Size/4320=4320 px (4x)"
+"$$$/InstagramCarousel/Size/Custom=Personalizzato"
+
+"$$$/InstagramCarousel/Overflow/WhenDoesntFit=Quando l'immagine non si adatta perfettamente:"
+"$$$/InstagramCarousel/Overflow/AddBands=Aggiungi bande con cornice opzionale"
+"$$$/InstagramCarousel/Overflow/CropToFit=Ritaglia per adattare perfettamente"
+
+"$$$/InstagramCarousel/Label/BandColor=Colore Banda:"
+"$$$/InstagramCarousel/Label/FrameColor=Colore Cornice:"
+"$$$/InstagramCarousel/Label/EnableFrame=Abilita Cornice"
+"$$$/InstagramCarousel/Label/FrameSize=Dimensione:"
+
+"$$$/InstagramCarousel/Label/OpenFolder=Apri cartella esportazione dopo l'esportazione"
+
+"$$$/InstagramCarousel/Progress/ExportTitle=Esportazione Carosello Instagram"
+"$$$/InstagramCarousel/Progress/Rendering=Rendering foto ^1 di ^2..."
+"$$$/InstagramCarousel/Progress/Processing=Elaborazione foto ^1 di ^2: divisione in riquadri..."
+"$$$/InstagramCarousel/Progress/ReadingDimensions=Foto ^1 di ^2: lettura dimensioni..."
+"$$$/InstagramCarousel/Progress/CreatingTiles=Foto ^1 di ^2: creazione di ^3 riquadri..."
+
+"$$$/InstagramCarousel/Warning/Title=Avviso"
+"$$$/InstagramCarousel/Warning/DimensionsNotDetermined=Impossibile determinare le dimensioni dell'immagine.\n\nAssicurati che ImageMagick sia installato e accessibile.\n\nIl file originale è stato esportato senza divisione."
+"$$$/InstagramCarousel/Warning/ImageMagickNotInstalled=Impossibile dividere l'immagine in riquadri carosello. ImageMagick non è installato o non è accessibile.\n\nIl file originale è stato esportato senza divisione.\n\nPer abilitare la divisione delle immagini, installa ImageMagick:"
+"$$$/InstagramCarousel/Warning/ImageMagickError=Impossibile dividere l'immagine in riquadri carosello.\n\nErrore: ^1\n\nIl file originale è stato esportato senza divisione."
+
+"$$$/InstagramCarousel/Help/About=Informazioni su Generatore Carosello Instagram"

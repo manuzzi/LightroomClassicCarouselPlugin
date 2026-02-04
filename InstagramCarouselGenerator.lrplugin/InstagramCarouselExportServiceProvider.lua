@@ -21,6 +21,9 @@ local LrSystemInfo = import 'LrSystemInfo'
 local LrPrefs = import 'LrPrefs'
 local LrShell = import 'LrShell'
 
+-- Load translation provider for localized strings
+local Str = require 'TranslationProvider'
+
 -- Create a logger for this module
 local logger = LrLogger('InstagramCarouselExportService')
 logger:enable("print")
@@ -190,12 +193,12 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
     
     return {
         {
-            title = "Instagram Carousel Settings",
+            title = Str.exportSectionCarousel,
             synopsis = bind 'seamlessMode',
             
             f:row {
                 f:checkbox {
-                    title = "Enable Seamless Carousel Mode (split panoramas)",
+                    title = Str.labelSeamlessMode,
                     value = bind 'seamlessMode',
                     checked_value = true,
                     unchecked_value = false,
@@ -209,7 +212,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 spacing = f:control_spacing(),
                 
                 f:static_text {
-                    title = "Tile Aspect Ratio:",
+                    title = Str.labelAspectRatio,
                     alignment = 'right',
                     width = share 'label_width',
                 },
@@ -218,11 +221,11 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                     value = bind 'aspectRatio',
                     enabled = bind 'seamlessMode',
                     items = {
-                        { title = "4:5 (Portrait)", value = '4:5' },
-                        { title = "1:1 (Square)", value = '1:1' },
-                        { title = "5:4 (Landscape)", value = '5:4' },
-                        { title = "16:9 (Wide)", value = '16:9' },
-                        { title = "9:16 (Vertical)", value = '9:16' },
+                        { title = Str.aspectRatio4x5, value = '4:5' },
+                        { title = Str.aspectRatio1x1, value = '1:1' },
+                        { title = Str.aspectRatio5x4, value = '5:4' },
+                        { title = Str.aspectRatio16x9, value = '16:9' },
+                        { title = Str.aspectRatio9x16, value = '9:16' },
                     },
                 },
             },
@@ -232,7 +235,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 spacing = f:control_spacing(),
                 
                 f:static_text {
-                    title = "Short Side Size:",
+                    title = Str.labelShortSideSize,
                     alignment = 'right',
                     width = share 'label_width',
                 },
@@ -241,11 +244,11 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                     value = bind 'shortSideSize',
                     enabled = bind 'seamlessMode',
                     items = {
-                        { title = "1080 px (Instagram standard)", value = '1080' },
-                        { title = "2160 px (2x)", value = '2160' },
-                        { title = "3240 px (3x)", value = '3240' },
-                        { title = "4320 px (4x)", value = '4320' },
-                        { title = "Custom", value = 'custom' },
+                        { title = Str.size1080, value = '1080' },
+                        { title = Str.size2160, value = '2160' },
+                        { title = Str.size3240, value = '3240' },
+                        { title = Str.size4320, value = '4320' },
+                        { title = Str.sizeCustom, value = 'custom' },
                     },
                 },
             },
@@ -255,7 +258,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 spacing = f:control_spacing(),
                 
                 f:static_text {
-                    title = "Custom Size:",
+                    title = Str.labelCustomSize,
                     alignment = 'right',
                     width = share 'label_width',
                 },
@@ -270,7 +273,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 },
                 
                 f:static_text {
-                    title = "px",
+                    title = Str.labelPixels,
                 },
             },
             
@@ -279,7 +282,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 spacing = f:control_spacing(),
                 
                 f:static_text {
-                    title = "Tile Size:",
+                    title = Str.labelTileSize,
                     alignment = 'right',
                     width = share 'label_width',
                 },
@@ -299,14 +302,14 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
         },
         
         {
-            title = "Overflow Handling",
+            title = Str.exportSectionOverflow,
             synopsis = bind 'overflowHandling',
             
             f:row {
                 spacing = f:control_spacing(),
                 
                 f:static_text {
-                    title = "When image doesn't fit perfectly:",
+                    title = Str.overflowWhenDoesntFit,
                     alignment = 'left',
                     width = share 'label_width',
                 },
@@ -316,7 +319,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 spacing = f:control_spacing(),
                 
                 f:radio_button {
-                    title = "Add bands with optional frame",
+                    title = Str.overflowAddBands,
                     value = bind 'overflowHandling',
                     checked_value = 'addBands',
                     enabled = bind 'seamlessMode',
@@ -327,7 +330,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 spacing = f:control_spacing(),
                 
                 f:radio_button {
-                    title = "Crop to fit perfectly",
+                    title = Str.overflowCropToFit,
                     value = bind 'overflowHandling',
                     checked_value = 'crop',
                     enabled = bind 'seamlessMode',
@@ -336,7 +339,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
         },
         
         {
-            title = "Band & Frame Settings",
+            title = Str.exportSectionBandFrame,
             synopsis = bind 'enableFrame',
             
             -- Row 1: Band Color RGB sliders
@@ -344,7 +347,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 spacing = f:control_spacing(),
                 
                 f:static_text {
-                    title = "Band Color:",
+                    title = Str.labelBandColor,
                     alignment = 'right',
                     width = share 'label_width',
                 },
@@ -391,7 +394,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 f:spacer { width = 10 },
                 
                 f:checkbox {
-                    title = "Enable Frame",
+                    title = Str.labelEnableFrame,
                     value = bind 'enableFrame',
                     checked_value = true,
                     unchecked_value = false,
@@ -404,7 +407,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 spacing = f:control_spacing(),
                 
                 f:static_text {
-                    title = "Frame Color:",
+                    title = Str.labelFrameColor,
                     alignment = 'right',
                     width = share 'label_width',
                 },
@@ -451,7 +454,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 f:spacer { width = 10 },
                 
                 f:static_text {
-                    title = "Size:",
+                    title = Str.labelFrameSize,
                 },
                 
                 f:edit_field {
@@ -464,17 +467,17 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 },
                 
                 f:static_text {
-                    title = "px",
+                    title = Str.labelPixels,
                 },
             },
         },
         
         {
-            title = "After Export",
+            title = Str.exportSectionAfterExport,
             
             f:row {
                 f:checkbox {
-                    title = "Open export folder after export",
+                    title = Str.labelOpenFolder,
                     value = bind 'openExportFolder',
                     checked_value = true,
                     unchecked_value = false,
@@ -553,7 +556,7 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
     local tileHeight = exportParams.tileHeight
     
     logInfo("========================================")
-    logInfo("Starting Instagram Carousel Export v1.2.7")
+    logInfo("Starting Instagram Carousel Export v1.4.0")
     logInfo("========================================")
     logInfo("Tile aspect ratio: " .. exportParams.aspectRatio)
     logInfo("Short side size: " .. exportParams.shortSideSize)
@@ -576,9 +579,9 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
     
     logInfo("Number of photos to export: " .. nPhotos)
     
-    -- Progress scope
+    -- Progress scope (localized)
     local progressScope = exportContext:configureProgress({
-        title = "Instagram Carousel Export",
+        title = Str.progressExportTitle,
     })
     
     -- Track completed renditions for progress
@@ -596,8 +599,8 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
             break
         end
         
-        -- Update progress - rendering phase
-        progressScope:setCaption(string.format("Rendering photo %d of %d...", i, nPhotos))
+        -- Update progress - rendering phase (localized with placeholders)
+        progressScope:setCaption(LOC("$$$/InstagramCarousel/Progress/Rendering=Rendering photo ^1 of ^2...", i, nPhotos))
         
         local success, pathOrMessage = rendition:waitForRender()
         
@@ -609,14 +612,14 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
             
             -- If seamless mode is enabled, split the image into tiles
             if exportParams.seamlessMode then
-                -- Update progress - processing phase
-                progressScope:setCaption(string.format("Processing photo %d of %d: splitting into tiles...", i, nPhotos))
+                -- Update progress - processing phase (localized)
+                progressScope:setCaption(LOC("$$$/InstagramCarousel/Progress/Processing=Processing photo ^1 of ^2: splitting into tiles...", i, nPhotos))
                 
                 logInfo("Seamless mode enabled - splitting image into carousel tiles")
                 
                 -- Step 1: Get the dimensions of the rendered image
                 logDebug("Step 1: Getting source image dimensions...")
-                progressScope:setCaption(string.format("Photo %d of %d: reading dimensions...", i, nPhotos))
+                progressScope:setCaption(LOC("$$$/InstagramCarousel/Progress/ReadingDimensions=Photo ^1 of ^2: reading dimensions...", i, nPhotos))
                 
                 local sourceWidth, sourceHeight = getImageDimensionsFromFile(pathOrMessage)
                 
@@ -638,11 +641,7 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
                 
                 if not sourceWidth or not sourceHeight then
                     logError("Could not determine source image dimensions")
-                    LrDialogs.message("Warning", 
-                        "Could not determine image dimensions.\n\n" ..
-                        "Please ensure ImageMagick is installed and accessible.\n\n" ..
-                        "Original file has been exported without splitting.",
-                        "warning")
+                    LrDialogs.message(Str.warningTitle, Str.warningDimensionsNotDetermined, "warning")
                 else
                     logInfo("Source dimensions: " .. sourceWidth .. "x" .. sourceHeight)
                     
@@ -681,7 +680,7 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
                     
                     -- Step 3 & 4: Call ImageMagick to split the image
                     logDebug("Step 3 & 4: Calling ImageMagick to apply processing and split...")
-                    progressScope:setCaption(string.format("Photo %d of %d: creating %d tiles...", i, nPhotos, numTiles))
+                    progressScope:setCaption(LOC("$$$/InstagramCarousel/Progress/CreatingTiles=Photo ^1 of ^2: creating ^3 tiles...", i, nPhotos, numTiles))
                     
                     local tiles, errorMsg = ImageProcessor.splitImageIntoTiles(
                         pathOrMessage,
@@ -715,33 +714,23 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
                     else
                         logWarn("Failed to split image into tiles - keeping original export")
                         
-                        -- Provide detailed error message
+                        -- Provide detailed error message (localized)
                         local errorDetails = errorMsg or "Unknown error"
                         local platform = string.find(string.lower(LrSystemInfo.osVersion()), "windows") and "Windows" or "macOS"
                         
                         local messageText
                         if string.find(errorDetails, "not installed") or string.find(errorDetails, "not in PATH") then
-                            messageText = "Could not split image into carousel tiles. ImageMagick is not installed or not accessible.\n\n" ..
-                                        "Original file has been exported without splitting.\n\n" ..
-                                        "To enable image splitting, please install ImageMagick:\n"
+                            messageText = Str.warningImageMagickNotInstalled .. "\n"
                             if platform == "Windows" then
-                                messageText = messageText .. 
-                                            "- Download from https://imagemagick.org\n" ..
-                                            "- During installation, make sure to check 'Add to PATH'\n" ..
-                                            "- Restart Lightroom after installation"
+                                messageText = messageText .. Str.imageMagickInstallWindows
                             else
-                                messageText = messageText ..
-                                            "- Install via Homebrew: brew install imagemagick\n" ..
-                                            "- Or download from https://imagemagick.org\n" ..
-                                            "- Restart Lightroom after installation"
+                                messageText = messageText .. Str.imageMagickInstallMac
                             end
                         else
-                            messageText = "Could not split image into carousel tiles.\n\n" ..
-                                        "Error: " .. errorDetails .. "\n\n" ..
-                                        "Original file has been exported without splitting."
+                            messageText = LOC("$$$/InstagramCarousel/Warning/ImageMagickError=Could not split image into carousel tiles.\n\nError: ^1\n\nOriginal file has been exported without splitting.", errorDetails)
                         end
                         
-                        LrDialogs.message("Warning", messageText, "info")
+                        LrDialogs.message(Str.warningTitle, messageText, "info")
                     end
                 end
             else

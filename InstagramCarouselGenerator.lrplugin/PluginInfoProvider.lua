@@ -18,6 +18,9 @@ local LrPrefs = import 'LrPrefs'
 local LrBinding = import 'LrBinding'
 local LrPathUtils = import 'LrPathUtils'
 
+-- Load translation provider for localized strings
+local Str = require 'TranslationProvider'
+
 local pluginInfoProvider = {}
 
 --------------------------------------------------------------------------------
@@ -130,27 +133,12 @@ local function testImageMagick()
             if not installed then
                 local platformMsg
                 if isWindows() then
-                    platformMsg = "ImageMagick is not installed or not accessible.\n\n" ..
-                                  "To install:\n" ..
-                                  "1. Download from https://imagemagick.org\n" ..
-                                  "2. Run the installer\n" ..
-                                  "3. Make sure to check 'Add to PATH' during installation\n" ..
-                                  "4. Restart Lightroom"
+                    platformMsg = Str.imageMagickNotAccessible .. "\n\n" .. Str.imageMagickInstallWindows
                 else
-                    platformMsg = "ImageMagick is not installed or not accessible.\n\n" ..
-                                  "To install:\n" ..
-                                  "1. Using Homebrew: brew install imagemagick\n" ..
-                                  "2. Or download from https://imagemagick.org\n" ..
-                                  "3. Restart Lightroom after installation\n\n" ..
-                                  "Searched paths:\n" ..
-                                  "• /opt/homebrew/bin (Homebrew on Apple Silicon)\n" ..
-                                  "• /usr/local/bin (Homebrew on Intel Macs)\n" ..
-                                  "• /opt/local/bin (MacPorts)\n" ..
-                                  "• /usr/bin (System)\n" ..
-                                  "• System PATH"
+                    platformMsg = Str.imageMagickNotAccessible .. "\n\n" .. Str.imageMagickInstallMac .. "\n\n" .. Str.imageMagickSearchedPaths
                 end
                 
-                LrDialogs.message("ImageMagick Test Failed", platformMsg, "critical")
+                LrDialogs.message(Str.testImageMagickFailed, platformMsg, "critical")
                 return
             end
             
@@ -181,17 +169,14 @@ local function testImageMagick()
             end)
             
             if testSuccess and testResult and string.find(testResult, "ImageMagick") then
-                local successMsg = "ImageMagick is working correctly!\n\n" ..
-                                   "Version: " .. (version or "Unknown") .. "\n" ..
-                                   "Location: " .. (path and path ~= "" and path or "System PATH") .. "\n\n" ..
-                                   "You can use seamless carousel mode to split panoramic images."
+                local versionStr = version or Str.statusUnknown
+                local locationStr = (path and path ~= "" and path or Str.statusSystemPath)
+                -- Use LOC with placeholders for the success message
+                local successMsg = LOC("$$$/InstagramCarousel/ImageMagick/WorkingMsg=ImageMagick is working correctly!\n\nVersion: ^1\nLocation: ^2\n\nYou can use seamless carousel mode to split panoramic images.", versionStr, locationStr)
                 
-                LrDialogs.message("ImageMagick Test Successful", successMsg, "info")
+                LrDialogs.message(Str.testImageMagickSuccess, successMsg, "info")
             else
-                LrDialogs.message("ImageMagick Test Failed", 
-                    "ImageMagick was detected but the test command failed.\n\n" ..
-                    "Please try reinstalling ImageMagick and restart Lightroom.", 
-                    "warning")
+                LrDialogs.message(Str.testImageMagickFailed, Str.imageMagickTestFailedMsg, "warning")
             end
         end)
     end)
@@ -216,7 +201,7 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
     
     return {
         {
-            title = "Instagram Carousel Generator",
+            title = Str.sectionTitleMain,
             
             f:picture {
                 value = pluginPath,
@@ -227,7 +212,7 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             f:spacer { height = 10 },
             
             f:static_text {
-                title = "Instagram Carousel Generator helps you create seamless carousel posts for Instagram directly from Adobe Lightroom Classic.\n\nNew features: Aspect ratio presets, image splitting for panoramas, customizable bands and frames.",
+                title = Str.pluginDescription,
                 fill_horizontal = 1,
                 width_in_chars = 50,
                 height_in_lines = 4,
@@ -236,7 +221,7 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             f:spacer { height = 10 },
             
             f:static_text {
-                title = "Version 1.3.0",
+                title = Str.pluginVersion,
                 font = '<system/bold>',
             },
             
@@ -244,7 +229,7 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             
             f:row {
                 f:static_text {
-                    title = "GitHub:",
+                    title = Str.labelGitHub,
                     width = 60,
                 },
                 
@@ -259,11 +244,11 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
         },
         
         {
-            title = "Credits & Support",
+            title = Str.sectionTitleCredits,
             
             f:row {
                 f:static_text {
-                    title = "Developed by:",
+                    title = Str.labelDevelopedBy,
                     width = 80,
                 },
                 
@@ -275,7 +260,7 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             
             f:row {
                 f:static_text {
-                    title = "Email:",
+                    title = Str.labelEmail,
                     width = 80,
                 },
                 
@@ -290,7 +275,7 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             
             f:row {
                 f:static_text {
-                    title = "Website:",
+                    title = Str.labelWebsite,
                     width = 80,
                 },
                 
@@ -306,7 +291,7 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             f:spacer { height = 10 },
             
             f:static_text {
-                title = "If you find this plugin useful, please consider supporting its development:",
+                title = Str.supportMessage,
                 fill_horizontal = 1,
                 width_in_chars = 50,
             },
@@ -315,12 +300,12 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             
             f:row {
                 f:static_text {
-                    title = "PayPal:",
+                    title = Str.labelPayPal,
                     width = 80,
                 },
                 
                 f:static_text {
-                    title = "Donate via PayPal",
+                    title = Str.donateViaPayPal,
                     text_color = LrColor("blue"),
                     font = '<system/bold>',
                     mouse_down = function()
@@ -333,19 +318,19 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             
             f:row {
                 f:static_text {
-                    title = "License:",
+                    title = Str.labelLicense,
                     width = 80,
                 },
                 
                 f:static_text {
-                    title = "MIT License - Copyright (c) 2026 Marco Manuzzi",
+                    title = Str.licenseText,
                 },
             },
             
             f:spacer { height = 10 },
             
             f:static_text {
-                title = "This plugin uses ImageMagick® for image processing:",
+                title = Str.imageMagickCredits,
                 fill_horizontal = 1,
                 width_in_chars = 50,
             },
@@ -374,7 +359,7 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
                 },
                 
                 f:static_text {
-                    title = "License: Apache 2.0 License",
+                    title = Str.imageMagickLicense,
                     text_color = LrColor("blue"),
                     mouse_down = function()
                         LrHttp.openUrlInBrowser("https://imagemagick.org/script/license.php")
@@ -384,16 +369,16 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
         },
         
         {
-            title = "ImageMagick Status",
+            title = Str.sectionTitleImageMagick,
             
             f:row {
                 f:static_text {
-                    title = "Status:",
+                    title = Str.labelStatus,
                     width = 80,
                 },
                 
                 f:static_text {
-                    title = imageMagickInstalled and "✓ Installed" or "✗ Not Installed",
+                    title = imageMagickInstalled and Str.statusInstalled or Str.statusNotInstalled,
                     text_color = imageMagickInstalled and LrColor("green") or LrColor("red"),
                     font = '<system/bold>',
                 },
@@ -401,38 +386,36 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             
             imageMagickInstalled and f:row {
                 f:static_text {
-                    title = "Version:",
+                    title = Str.labelVersion,
                     width = 80,
                 },
                 
                 f:static_text {
-                    title = imageMagickVersion or "Unknown",
+                    title = imageMagickVersion or Str.statusUnknown,
                 },
             } or f:column {},
             
             imageMagickInstalled and f:row {
                 f:static_text {
-                    title = "Location:",
+                    title = Str.labelLocation,
                     width = 80,
                 },
                 
                 f:static_text {
-                    title = (imageMagickPath and imageMagickPath ~= "") and imageMagickPath or "System PATH",
+                    title = (imageMagickPath and imageMagickPath ~= "") and imageMagickPath or Str.statusSystemPath,
                 },
             } or f:column {},
             
             f:spacer { height = 5 },
             
             imageMagickInstalled and f:static_text {
-                title = "ImageMagick is properly installed. You can use seamless carousel mode to split panoramic images.",
+                title = Str.imageMagickAvailable,
                 fill_horizontal = 1,
                 width_in_chars = 50,
                 height_in_lines = 2,
             } or f:static_text {
-                title = "ImageMagick is required for splitting panoramic images into carousel tiles.\n\n" ..
-                        (isWindowsPlatform and 
-                         "To install:\n1. Download from https://imagemagick.org\n2. Run the installer\n3. Make sure to check 'Add to PATH' during installation\n4. Restart Lightroom" or
-                         "To install:\n1. Using Homebrew: brew install imagemagick\n2. Or download from https://imagemagick.org\n3. Restart Lightroom after installation"),
+                title = Str.imageMagickRequired .. "\n\n" ..
+                        (isWindowsPlatform and Str.imageMagickInstallWindows or Str.imageMagickInstallMac),
                 fill_horizontal = 1,
                 width_in_chars = 50,
                 height_in_lines = isWindowsPlatform and 6 or 5,
@@ -442,7 +425,7 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             
             f:row {
                 f:push_button {
-                    title = "Test ImageMagick",
+                    title = Str.btnTestImageMagick,
                     action = function()
                         testImageMagick()
                     end,
@@ -451,11 +434,11 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
         },
         
         {
-            title = "Logging Settings",
+            title = Str.sectionTitleLogging,
             
             f:row {
                 f:static_text {
-                    title = "Log Level:",
+                    title = Str.labelLogLevel,
                     width = 80,
                 },
                 
@@ -465,10 +448,10 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
                         bind_to_object = prefs,
                     },
                     items = {
-                        { title = "Debug (verbose)", value = "debug" },
-                        { title = "Info (default)", value = "info" },
-                        { title = "Warning", value = "warn" },
-                        { title = "Error only", value = "error" },
+                        { title = Str.logLevelDebug, value = "debug" },
+                        { title = Str.logLevelInfo, value = "info" },
+                        { title = Str.logLevelWarn, value = "warn" },
+                        { title = Str.logLevelError, value = "error" },
                     },
                     immediate = true,
                 },
@@ -477,7 +460,7 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             f:spacer { height = 5 },
             
             f:static_text {
-                title = "Set to 'Debug' for detailed logging when troubleshooting issues.\nLogs can be viewed in Lightroom's Console (Help > System Info > Show Log File).",
+                title = Str.loggingHelpText,
                 fill_horizontal = 1,
                 width_in_chars = 50,
                 height_in_lines = 2,
