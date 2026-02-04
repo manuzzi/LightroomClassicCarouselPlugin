@@ -27,6 +27,20 @@ local TILE_NAME_PATTERN_WIN = "tile_%d.jpg"
 local TILE_NAME_PATTERN_UNIX = "tile_%%d.jpg"
 
 --------------------------------------------------------------------------------
+-- Helper function to escape shell arguments
+
+local function escapeShellArg(arg)
+    -- Escape shell arguments to prevent command injection
+    if WIN_ENV then
+        -- Windows: escape quotes and wrap in quotes
+        return '"' .. arg:gsub('"', '""') .. '"'
+    else
+        -- Unix: use single quotes and escape any single quotes
+        return "'" .. arg:gsub("'", "'\\''") .. "'"
+    end
+end
+
+--------------------------------------------------------------------------------
 -- Helper function to get image dimensions from file
 -- This uses external tools if available, or returns nil
 
@@ -35,9 +49,9 @@ function ImageProcessor.getImageDimensions(imagePath)
     local success, result = LrTasks.pcall(function()
         local command
         if WIN_ENV then
-            command = 'magick identify -format "%w %h" "' .. imagePath .. '"'
+            command = 'magick identify -format "%w %h" ' .. escapeShellArg(imagePath)
         else
-            command = 'identify -format "%w %h" "' .. imagePath .. '" 2>/dev/null'
+            command = 'identify -format "%w %h" ' .. escapeShellArg(imagePath) .. ' 2>/dev/null'
         end
         
         local handle = io.popen(command)
@@ -140,65 +154,72 @@ function ImageProcessor.splitWithImageMagick(sourcePath, outputDir, tileWidth, t
     
     if params.overflowHandling == 'addBands' then
         -- Add bands with background color and optional frame
+        -- Clamp color values to valid range [0, 1]
+        local function clamp(value)
+            return math.max(0, math.min(1, value or 0))
+        end
+        
         local bgColor = string.format("rgb(%d,%d,%d)", 
-            math.floor(params.backgroundColor.r * 255),
-            math.floor(params.backgroundColor.g * 255),
-            math.floor(params.backgroundColor.b * 255)
+            math.floor(clamp(params.backgroundColor.r) * 255),
+            math.floor(clamp(params.backgroundColor.g) * 255),
+            math.floor(clamp(params.backgroundColor.b) * 255)
         )
         
         local frameOpts = ""
         if params.enableFrame then
             local frameColor = string.format("rgb(%d,%d,%d)",
-                math.floor(params.frameColor.r * 255),
-                math.floor(params.frameColor.g * 255),
-                math.floor(params.frameColor.b * 255)
+                math.floor(clamp(params.frameColor.r) * 255),
+                math.floor(clamp(params.frameColor.g) * 255),
+                math.floor(clamp(params.frameColor.b) * 255)
             )
-            frameOpts = string.format(' -bordercolor "%s" -border %d', frameColor, params.frameSize)
+            -- Clamp frame size to reasonable range
+            local frameSize = math.max(1, math.min(100, params.frameSize or 10))
+            frameOpts = string.format(' -bordercolor "%s" -border %d', frameColor, frameSize)
         end
         
         -- Build command to add bands and split
         if WIN_ENV then
             command = string.format(
-                'magick "%s" -background "%s" -gravity center -extent %dx%d%s -crop %dx%d +repage "%s"',
-                sourcePath,
+                'magick %s -background "%s" -gravity center -extent %dx%d%s -crop %dx%d +repage %s',
+                escapeShellArg(sourcePath),
                 bgColor,
                 tileWidth * numTiles,
                 tileHeight,
                 frameOpts,
                 tileWidth,
                 tileHeight,
-                LrPathUtils.child(outputDir, TILE_NAME_PATTERN_WIN)
+                escapeShellArg(LrPathUtils.child(outputDir, TILE_NAME_PATTERN_WIN))
             )
         else
             command = string.format(
-                'convert "%s" -background "%s" -gravity center -extent %dx%d%s -crop %dx%d +repage "%s"',
-                sourcePath,
+                'convert %s -background "%s" -gravity center -extent %dx%d%s -crop %dx%d +repage %s',
+                escapeShellArg(sourcePath),
                 bgColor,
                 tileWidth * numTiles,
                 tileHeight,
                 frameOpts,
                 tileWidth,
                 tileHeight,
-                LrPathUtils.child(outputDir, TILE_NAME_PATTERN_UNIX)
+                escapeShellArg(LrPathUtils.child(outputDir, TILE_NAME_PATTERN_UNIX))
             )
         end
     else
         -- Crop mode
         if WIN_ENV then
             command = string.format(
-                'magick "%s" -crop %dx%d +repage "%s"',
-                sourcePath,
+                'magick %s -crop %dx%d +repage %s',
+                escapeShellArg(sourcePath),
                 tileWidth,
                 tileHeight,
-                LrPathUtils.child(outputDir, TILE_NAME_PATTERN_WIN)
+                escapeShellArg(LrPathUtils.child(outputDir, TILE_NAME_PATTERN_WIN))
             )
         else
             command = string.format(
-                'convert "%s" -crop %dx%d +repage "%s"',
-                sourcePath,
+                'convert %s -crop %dx%d +repage %s',
+                escapeShellArg(sourcePath),
                 tileWidth,
                 tileHeight,
-                LrPathUtils.child(outputDir, TILE_NAME_PATTERN_UNIX)
+                escapeShellArg(LrPathUtils.child(outputDir, TILE_NAME_PATTERN_UNIX))
             )
         end
     end
