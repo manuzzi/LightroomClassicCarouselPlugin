@@ -341,6 +341,46 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
                     title = "MIT License - Copyright (c) 2026 Marco Manuzzi",
                 },
             },
+            
+            f:spacer { height = 10 },
+            
+            f:static_text {
+                title = "This plugin uses ImageMagick® for image processing:",
+                fill_horizontal = 1,
+                width_in_chars = 50,
+            },
+            
+            f:spacer { height = 5 },
+            
+            f:row {
+                f:static_text {
+                    title = "ImageMagick:",
+                    width = 80,
+                },
+                
+                f:static_text {
+                    title = "https://imagemagick.org",
+                    text_color = LrColor("blue"),
+                    mouse_down = function()
+                        LrHttp.openUrlInBrowser("https://imagemagick.org")
+                    end,
+                },
+            },
+            
+            f:row {
+                f:static_text {
+                    title = "",  -- Empty label for alignment with ImageMagick row above
+                    width = 80,
+                },
+                
+                f:static_text {
+                    title = "License: Apache 2.0 License",
+                    text_color = LrColor("blue"),
+                    mouse_down = function()
+                        LrHttp.openUrlInBrowser("https://imagemagick.org/script/license.php")
+                    end,
+                },
+            },
         },
         
         {
