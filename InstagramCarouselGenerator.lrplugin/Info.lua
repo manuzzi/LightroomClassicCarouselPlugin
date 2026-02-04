@@ -9,7 +9,7 @@ Main plugin metadata and initialization file.
 
 return {
     -- SDK Version Information
-    LrSdkVersion = 12.0,
+    LrSdkVersion = 15.1,
     LrSdkMinimumVersion = 11.0,
     
     -- Plugin Information
