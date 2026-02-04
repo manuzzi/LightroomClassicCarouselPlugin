@@ -187,7 +187,7 @@ end
 -- This function takes a rendered image and splits it into carousel tiles
 -- based on the target tile size and user preferences.
 --
--- NEW APPROACH (v1.2.2):
+-- NEW APPROACH (v1.2.7):
 -- 1. Divide the panoramic image into N tiles based on the desired ratio
 -- 2. Resize to the requested actual size
 --
@@ -198,8 +198,8 @@ end
 --   tileHeight: Target height of each tile (final output size)
 --   params: Table with additional parameters:
 --     - overflowHandling: 'addBands' or 'crop'
---     - backgroundColor: {r, g, b} values from 0-1
---     - frameColor: {r, g, b} values from 0-1
+--     - bgColorR, bgColorG, bgColorB: Background color RGB values (0-255)
+--     - frameColorR, frameColorG, frameColorB: Frame color RGB values (0-255)
 --     - frameSize: Frame size in pixels
 --     - enableFrame: Boolean to enable frame
 --     - sourceWidth: Width of source image (from Lightroom)
@@ -302,45 +302,13 @@ function ImageProcessor.executeSplit(sourcePath, outputDir, tileWidth, tileHeigh
     local baseName = params.baseName or "tile"
     local outputPattern = LrPathUtils.child(outputDir, baseName .. "_tile_%02d.jpg")
     
-    -- Helper function to safely get color values
-    -- Handles both formats: {r, g, b} and {red, green, blue}
-    local function getColorValue(colorTable, channel)
-        if type(colorTable) ~= "table" then
-            logDebug("Color is not a table, returning 0")
-            return 0
-        end
-        
-        -- Try both short and long channel names
-        local channelMap = {
-            r = {"r", "red"},
-            g = {"g", "green"},
-            b = {"b", "blue"}
-        }
-        
-        local channelNames = channelMap[channel]
-        if not channelNames then
-            logDebug("Unknown channel: " .. tostring(channel))
-            return 0
-        end
-        
-        -- Try each possible channel name
-        for _, name in ipairs(channelNames) do
-            local value = colorTable[name]
-            if type(value) == "number" then
-                return math.max(0, math.min(1, value))
-            end
-        end
-        
-        logDebug("Could not find valid value for channel: " .. channel)
-        return 0
-    end
-    
-    -- Helper function to format color for ImageMagick
-    local function formatColor(colorTable)
-        local r = math.floor(getColorValue(colorTable, "r") * 255)
-        local g = math.floor(getColorValue(colorTable, "g") * 255)
-        local b = math.floor(getColorValue(colorTable, "b") * 255)
-        return string.format("rgb(%d,%d,%d)", r, g, b)
+    -- Helper function to format RGB color for ImageMagick
+    -- Takes R, G, B values (0-255) and default values if not specified
+    local function formatColor(r, g, b, defaultR, defaultG, defaultB)
+        local red = math.floor(math.max(0, math.min(255, r or defaultR)))
+        local green = math.floor(math.max(0, math.min(255, g or defaultG)))
+        local blue = math.floor(math.max(0, math.min(255, b or defaultB)))
+        return string.format("rgb(%d,%d,%d)", red, green, blue)
     end
     
     local command
@@ -349,7 +317,7 @@ function ImageProcessor.executeSplit(sourcePath, outputDir, tileWidth, tileHeigh
         -- BANDS MODE:
         -- Add bands on top/bottom to fill the tile height
         
-        local bgColor = formatColor(params.backgroundColor)
+        local bgColor = formatColor(params.bgColorR, params.bgColorG, params.bgColorB, 255, 255, 255)
         logDebug("Background color: " .. bgColor)
         
         if params.enableFrame then
@@ -359,7 +327,7 @@ function ImageProcessor.executeSplit(sourcePath, outputDir, tileWidth, tileHeigh
             -- 3. Add bands on top/bottom with background color
             -- 4. Split into tiles
             
-            local frameColor = formatColor(params.frameColor)
+            local frameColor = formatColor(params.frameColorR, params.frameColorG, params.frameColorB, 0, 0, 0)
             local frameSize = math.max(1, math.min(100, params.frameSize or 10))
             
             logDebug("Frame color: " .. frameColor)
