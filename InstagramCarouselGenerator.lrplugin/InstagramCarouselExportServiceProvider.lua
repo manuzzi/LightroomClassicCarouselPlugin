@@ -478,9 +478,20 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
     logInfo("Tile size: " .. tileWidth .. "x" .. tileHeight)
     logInfo("Seamless mode: " .. tostring(exportParams.seamlessMode))
     logInfo("Overflow handling: " .. exportParams.overflowHandling)
-    logDebug("Background color: R=" .. tostring(exportParams.backgroundColor.r) .. 
-             " G=" .. tostring(exportParams.backgroundColor.g) .. 
-             " B=" .. tostring(exportParams.backgroundColor.b))
+    
+    -- Safe color logging helper
+    local function safeColorString(color)
+        if type(color) == "table" then
+            local r = type(color.r) == "number" and color.r or 0
+            local g = type(color.g) == "number" and color.g or 0
+            local b = type(color.b) == "number" and color.b or 0
+            return string.format("R=%.2f G=%.2f B=%.2f", r, g, b)
+        else
+            return "invalid color format"
+        end
+    end
+    
+    logDebug("Background color: " .. safeColorString(exportParams.backgroundColor))
     logDebug("Enable frame: " .. tostring(exportParams.enableFrame))
     logDebug("Open export folder: " .. tostring(exportParams.openExportFolder))
     
