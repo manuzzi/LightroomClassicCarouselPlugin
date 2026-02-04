@@ -304,8 +304,8 @@ function ImageProcessor.executeSplit(sourcePath, outputDir, tileWidth, tileHeigh
     
     -- Helper function to safely get color values
     -- Handles multiple formats:
-    -- 1. LrColor objects (methods: red(), green(), blue())
-    -- 2. Tables with {r, g, b} keys
+    -- 1. LrColor objects from color_well (indexed as [1]=red, [2]=green, [3]=blue)
+    -- 2. Tables with {r, g, b} keys (like defaults)
     -- 3. Tables with {red, green, blue} keys
     local function getColorValue(colorTable, channel)
         if type(colorTable) ~= "table" then
@@ -313,41 +313,58 @@ function ImageProcessor.executeSplit(sourcePath, outputDir, tileWidth, tileHeigh
             return 0
         end
         
-        -- Channel mapping for short names to full names
+        -- Channel mapping for names to numeric indices
+        -- LrColor objects from color_well use numeric indices: 1=red, 2=green, 3=blue
+        local channelIndex = {
+            r = 1,
+            g = 2,
+            b = 3
+        }
+        
         local channelFullNames = {
             r = "red",
             g = "green",
             b = "blue"
         }
         
+        local index = channelIndex[channel]
         local fullName = channelFullNames[channel]
-        if not fullName then
+        
+        if not index or not fullName then
             logDebug("Unknown channel: " .. tostring(channel))
             return 0
         end
         
-        -- First, try LrColor method access (e.g., colorTable:red())
-        -- LrColor objects have methods like red(), green(), blue()
-        if type(colorTable[fullName]) == "function" then
-            local success, value = pcall(function() return colorTable[fullName](colorTable) end)
-            if success and type(value) == "number" then
-                logDebug("Got color value via method " .. fullName .. "(): " .. tostring(value))
-                return math.max(0, math.min(1, value))
-            end
+        -- First, try numeric index access (LrColor from color_well)
+        -- This is the most common format from color_well widget
+        local value = colorTable[index]
+        if type(value) == "number" then
+            logDebug("Got color value via index [" .. index .. "]: " .. tostring(value))
+            return math.max(0, math.min(1, value))
         end
         
-        -- Second, try direct table access with full name (e.g., colorTable.red)
-        local value = colorTable[fullName]
+        -- Second, try direct table access with short name (e.g., colorTable.r)
+        -- This handles our default values like { r = 1, g = 1, b = 1 }
+        value = colorTable[channel]
+        if type(value) == "number" then
+            logDebug("Got color value via property " .. channel .. ": " .. tostring(value))
+            return math.max(0, math.min(1, value))
+        end
+        
+        -- Third, try direct table access with full name (e.g., colorTable.red)
+        value = colorTable[fullName]
         if type(value) == "number" then
             logDebug("Got color value via property " .. fullName .. ": " .. tostring(value))
             return math.max(0, math.min(1, value))
         end
         
-        -- Third, try direct table access with short name (e.g., colorTable.r)
-        value = colorTable[channel]
-        if type(value) == "number" then
-            logDebug("Got color value via property " .. channel .. ": " .. tostring(value))
-            return math.max(0, math.min(1, value))
+        -- Fourth, try LrColor method access (e.g., colorTable:red())
+        if type(colorTable[fullName]) == "function" then
+            local success, methodValue = pcall(function() return colorTable[fullName](colorTable) end)
+            if success and type(methodValue) == "number" then
+                logDebug("Got color value via method " .. fullName .. "(): " .. tostring(methodValue))
+                return math.max(0, math.min(1, methodValue))
+            end
         end
         
         logDebug("Could not find valid value for channel: " .. channel)

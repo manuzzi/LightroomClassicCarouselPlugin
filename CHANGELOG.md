@@ -6,9 +6,14 @@ All notable changes to the Instagram Carousel Generator plugin will be documente
 
 ### Fixed
 - **Band and Frame colors not applied correctly from color wheel**: Fixed color value extraction to properly handle LrColor objects returned by Lightroom's color_well widget. The color picker now correctly applies the selected colors for bands and frames when processing images.
+- **Colors other than white resulting in black**: Fixed numeric index access for LrColor objects. Lightroom's color_well widget returns colors as indexed tables ([1]=red, [2]=green, [3]=blue), not named properties.
 
 ### Changed
-- Updated color handling to support both LrColor objects (with method-based access like `red()`, `green()`, `blue()`) and plain table formats (with property access like `r`, `g`, `b` or `red`, `green`, `blue`).
+- Updated color handling to support multiple formats:
+  - LrColor indexed tables from color_well ([1], [2], [3])
+  - Tables with short names ({r, g, b})  
+  - Tables with full names ({red, green, blue})
+  - LrColor method calls (red(), green(), blue())
 
 ## [1.2.6] - Previous Release
 
