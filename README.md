@@ -8,8 +8,11 @@ The Instagram Carousel Generator is a Lightroom Classic plugin that helps photog
 
 ## Features
 
-- 🖼️ **Instagram-Optimized Export**: Default 1080x1080px export settings perfect for Instagram
-- 🔄 **Seamless Carousel Mode**: Special processing for connected panoramic posts
+- 🖼️ **Instagram-Optimized Export**: Multiple aspect ratio presets (4:5, 1:1, 5:4, 16:9, 9:16) perfect for Instagram
+- 🔄 **Seamless Carousel Mode**: Automatically splits panoramic photos into multiple edge-to-edge seamless tiles
+- 📐 **Aspect Ratio Presets**: Standard Instagram frame sizes with custom ratio option
+- 🎨 **Smart Overflow Handling**: Choose to add bands with optional frames or crop to fit perfectly
+- 🌈 **Customizable Styling**: Adjustable background and frame colors with customizable frame width
 - ⚙️ **Customizable Dimensions**: Adjust export size to your specific needs
 - 📁 **Multiple Formats**: Support for JPEG, TIFF, and PNG export
 - 🎨 **Color Space Options**: sRGB and Adobe RGB support
@@ -29,17 +32,46 @@ The Instagram Carousel Generator is a Lightroom Classic plugin that helps photog
 6. Click `Add` button
 7. Navigate to and select the `InstagramCarouselGenerator.lrplugin` folder
 8. Click `Done`
+9. **Verify ImageMagick Status**: In the Plugin Manager, check the "ImageMagick Status" section to ensure it shows "✓ Installed" (green) for seamless carousel functionality
 
 ## Usage
+
+### Checking ImageMagick Installation
+
+Before using seamless carousel mode, verify ImageMagick is installed:
+
+1. Go to `File > Plug-in Manager`
+2. Select `Instagram Carousel Generator`
+3. Check the **ImageMagick Status** section:
+   - **✓ Installed** (green) - Ready to split panoramas
+   - **✗ Not Installed** (red) - Follow the installation instructions shown
+
+### Exporting Photos
 
 1. Select the photos you want to export for Instagram in the Library module
 2. Go to `File > Export` (or press `Cmd+Shift+E` / `Ctrl+Shift+E`)
 3. In the Export dialog, select `Instagram Carousel` from the export service dropdown
 4. Configure your carousel settings:
-   - **Carousel Size**: Set width and height (default: 1080x1080px)
-   - **Seamless Mode**: Enable for connected panoramic carousels
+   - **Aspect Ratio**: Choose from Instagram standard ratios (4:5, 1:1, 5:4, 16:9, 9:16) or custom
+   - **Frame Size**: Automatically set based on aspect ratio (customizable for custom ratio)
+   - **Seamless Mode**: Enable to split panoramic photos into multiple carousel tiles
+   - **Overflow Handling**: Choose how to handle images that don't fit perfectly:
+     - Add bands with optional frame (for centered images with background)
+     - Crop to fit perfectly (for edge-to-edge fills)
+   - **Band & Frame Settings** (when using bands):
+     - Background color (default: white)
+     - Frame color (default: black)
+     - Frame size in pixels (default: 10px)
 5. Configure other export settings as needed (file format, quality, etc.)
 6. Click `Export`
+
+### Requirements
+
+For seamless carousel mode (image splitting), ImageMagick must be installed:
+- **macOS**: `brew install imagemagick`
+- **Windows**: Download from [https://imagemagick.org](https://imagemagick.org)
+
+If ImageMagick is not installed, photos will be exported as single images without splitting.
 
 ## Plugin Structure
 
@@ -54,6 +86,10 @@ InstagramCarouselGenerator.lrplugin/
 └── Resources/
     └── Images/                                 # Plugin icons and images
 ```
+
+## Detailed Usage Guide
+
+For comprehensive usage examples, troubleshooting, and best practices, see the [Usage Guide](InstagramCarouselGenerator.lrplugin/Documentation/USAGE.md).
 
 ## Development
 

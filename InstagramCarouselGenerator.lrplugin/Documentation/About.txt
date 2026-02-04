@@ -1,7 +1,7 @@
 Instagram Carousel Generator for Adobe Lightroom Classic
 ============================================================
 
-Version: 1.0.0
+Version: 1.1.0
 
 ABOUT
 -----
@@ -11,10 +11,22 @@ provides export presets and tools optimized for Instagram's carousel format.
 
 FEATURES
 --------
-- Export photos optimized for Instagram carousel format (1080x1080px by default)
-- Seamless carousel mode for creating connected panoramic posts
-- Customizable export dimensions
+- Export photos optimized for Instagram carousel format with multiple aspect ratios
+- Aspect ratio presets: 4:5 (Portrait), 1:1 (Square), 5:4 (Landscape), 16:9 (Wide), 9:16 (Vertical), and Custom
+- Seamless carousel mode for splitting panoramic photos into edge-to-edge tiles
+- Smart overflow handling with two options:
+  * Add bands with optional customizable frames
+  * Crop to fit perfectly
+- Customizable styling: background color, frame color, and frame width
 - Support for multiple image formats (JPEG, TIFF, PNG)
+
+REQUIREMENTS
+------------
+For seamless carousel mode (image splitting), ImageMagick must be installed:
+- macOS: brew install imagemagick
+- Windows: Download from https://imagemagick.org
+
+Without ImageMagick, photos will be exported as single images.
 
 INSTALLATION
 ------------
@@ -32,7 +44,11 @@ USAGE
 1. Select photos in Lightroom Classic Library module
 2. Go to File > Export
 3. Select "Instagram Carousel" from the export presets
-4. Configure your carousel settings
+4. Configure your settings:
+   - Aspect Ratio: Choose Instagram standard or custom
+   - Seamless Mode: Enable to split panoramas into carousel tiles
+   - Overflow Handling: Add bands or crop to fit
+   - Band & Frame Settings: Customize colors and frame size
 5. Click "Export"
 
 SUPPORT
