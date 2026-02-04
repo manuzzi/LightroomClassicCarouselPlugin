@@ -568,12 +568,15 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
                     local sourceRatio = sourceWidth / sourceHeight
                     
                     -- Calculate how many tiles fit based on the ratio
-                    local numTiles = math.floor(sourceRatio / tileRatio + 0.5)
+                    -- Round to nearest integer: if ratio is 2.4, use 2 tiles; if 2.6, use 3 tiles
+                    local exactTiles = sourceRatio / tileRatio
+                    local numTiles = math.floor(exactTiles + 0.5)  -- Standard rounding
                     numTiles = math.max(1, math.min(numTiles, 10))  -- Instagram limit
                     
                     logInfo("Optimal tile count: " .. numTiles .. " (source ratio: " .. 
                            string.format("%.2f", sourceRatio) .. ", tile ratio: " .. 
-                           string.format("%.2f", tileRatio) .. ")")
+                           string.format("%.2f", tileRatio) .. ", exact tiles: " ..
+                           string.format("%.2f", exactTiles) .. ")")
                     
                     -- Get the directory of the exported file
                     local exportDir = LrPathUtils.parent(pathOrMessage)
