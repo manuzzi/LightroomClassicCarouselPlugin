@@ -385,20 +385,24 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
     logInfo("Number of photos to export: " .. nPhotos)
     
     -- Progress scope
-    local progressScope = LrDialogs.showModalProgressDialog({
+    local progressScope = exportContext:configureProgress({
         title = "Instagram Carousel Export",
-        caption = "Processing photos...",
-        functionContext = functionContext,
     })
+    
+    -- Track completed renditions for progress
+    local completedRenditions = 0
     
     -- Iterate through each photo
     for i, rendition in exportContext:renditions() do
         
-        -- Update progress
-        if progressScope then
-            progressScope:setCaption(string.format("Processing photo %d of %d", i, nPhotos))
-            progressScope:setPortionComplete(i - 1, nPhotos)
+        -- Check if user cancelled
+        if progressScope:isCanceled() then
+            logInfo("Export cancelled by user")
+            break
         end
+        
+        -- Update progress - rendering phase
+        progressScope:setCaption(string.format("Rendering photo %d of %d...", i, nPhotos))
         
         local success, pathOrMessage = rendition:waitForRender()
         
@@ -407,10 +411,15 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
             
             -- If seamless mode is enabled, split the image into tiles
             if exportParams.seamlessMode then
+                -- Update progress - processing phase
+                progressScope:setCaption(string.format("Processing photo %d of %d: splitting into tiles...", i, nPhotos))
+                
                 logInfo("Seamless mode enabled - splitting image into carousel tiles")
                 
                 -- Step 1: Get the dimensions of the rendered image
                 logDebug("Step 1: Getting source image dimensions...")
+                progressScope:setCaption(string.format("Photo %d of %d: reading dimensions...", i, nPhotos))
+                
                 local sourceWidth, sourceHeight = getImageDimensionsFromFile(pathOrMessage)
                 
                 if not sourceWidth or not sourceHeight then
@@ -463,6 +472,7 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
                     
                     -- Step 3 & 4: Call ImageMagick to split the image
                     logDebug("Step 3 & 4: Calling ImageMagick to apply processing and split...")
+                    progressScope:setCaption(string.format("Photo %d of %d: creating %d tiles...", i, nPhotos, numTiles))
                     
                     local tiles, errorMsg = ImageProcessor.splitImageIntoTiles(
                         pathOrMessage,
@@ -524,11 +534,10 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
         else
             logError("Failed to export photo " .. i .. ": " .. pathOrMessage)
         end
-    end
-    
-    -- Close progress dialog
-    if progressScope then
-        progressScope:done()
+        
+        -- Update completed count and progress
+        completedRenditions = completedRenditions + 1
+        progressScope:setPortionComplete(completedRenditions, nPhotos)
     end
     
     logInfo("========================================")
