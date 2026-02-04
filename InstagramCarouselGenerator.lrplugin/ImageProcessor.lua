@@ -32,6 +32,75 @@ end
 local WIN_ENV = isWindows()
 
 --------------------------------------------------------------------------------
+-- ImageMagick Path Detection for macOS
+-- On macOS, ImageMagick installed via Homebrew may not be in the system PATH
+-- when launched from Lightroom. We search common installation locations.
+
+local imageMagickPath = nil  -- Cache the found path
+
+local function findImageMagickOnMac()
+    -- Common paths where ImageMagick might be installed on macOS
+    local commonPaths = {
+        "/opt/homebrew/bin",     -- Homebrew on Apple Silicon
+        "/usr/local/bin",        -- Homebrew on Intel Macs
+        "/opt/local/bin",        -- MacPorts
+        "/usr/bin",              -- System path
+        ""                       -- Empty string = rely on PATH
+    }
+    
+    for _, basePath in ipairs(commonPaths) do
+        local convertCmd
+        if basePath ~= "" then
+            convertCmd = basePath .. "/convert"
+        else
+            convertCmd = "convert"
+        end
+        
+        -- Check if the convert command exists and works
+        local success, result = LrTasks.pcall(function()
+            local command = convertCmd .. " -version 2>/dev/null"
+            local handle = io.popen(command)
+            if handle then
+                local output = handle:read("*a")
+                handle:close()
+                
+                if output and (string.find(output, "ImageMagick") or string.find(output, "Version")) then
+                    return true
+                end
+            end
+            return false
+        end)
+        
+        if success and result then
+            logger:info("Found ImageMagick at: " .. (basePath ~= "" and basePath or "system PATH"))
+            return basePath
+        end
+    end
+    
+    return nil
+end
+
+local function getImageMagickCommand(commandName)
+    -- For Windows, use 'magick' command
+    if WIN_ENV then
+        return "magick"
+    end
+    
+    -- For macOS/Unix, find the ImageMagick path if not already cached
+    if imageMagickPath == nil then
+        imageMagickPath = findImageMagickOnMac() or false  -- Use false to indicate "not found but checked"
+    end
+    
+    if imageMagickPath and imageMagickPath ~= "" then
+        return imageMagickPath .. "/" .. commandName
+    elseif imageMagickPath == "" then
+        return commandName  -- Use system PATH
+    else
+        return commandName  -- Not found, try anyway
+    end
+end
+
+--------------------------------------------------------------------------------
 -- Constants
 
 local TILE_NAME_PATTERN = "tile_%d.jpg"
@@ -63,8 +132,9 @@ function ImageProcessor.checkImageMagickAvailable()
             -- Windows: try 'magick' command
             command = 'magick -version'
         else
-            -- Unix/macOS: try 'convert' command
-            command = 'convert -version 2>/dev/null'
+            -- Unix/macOS: use path-aware convert command
+            local convertCmd = getImageMagickCommand("convert")
+            command = convertCmd .. ' -version 2>/dev/null'
         end
         
         local handle = io.popen(command)
@@ -100,7 +170,8 @@ function ImageProcessor.getImageDimensions(imagePath)
         if WIN_ENV then
             command = 'magick identify -format "%w %h" ' .. escapeShellArg(imagePath)
         else
-            command = 'identify -format "%w %h" ' .. escapeShellArg(imagePath) .. ' 2>/dev/null'
+            local identifyCmd = getImageMagickCommand("identify")
+            command = identifyCmd .. ' -format "%w %h" ' .. escapeShellArg(imagePath) .. ' 2>/dev/null'
         end
         
         local handle = io.popen(command)
@@ -245,8 +316,10 @@ function ImageProcessor.splitWithImageMagick(sourcePath, outputDir, tileWidth, t
                 escapeShellArg(LrPathUtils.child(outputDir, TILE_NAME_PATTERN_WIN))
             )
         else
+            local convertCmd = getImageMagickCommand("convert")
             command = string.format(
-                'convert %s -background "%s" -gravity center -extent %dx%d%s -crop %dx%d +repage %s',
+                '%s %s -background "%s" -gravity center -extent %dx%d%s -crop %dx%d +repage %s',
+                convertCmd,
                 escapeShellArg(sourcePath),
                 bgColor,
                 tileWidth * numTiles,
@@ -268,8 +341,10 @@ function ImageProcessor.splitWithImageMagick(sourcePath, outputDir, tileWidth, t
                 escapeShellArg(LrPathUtils.child(outputDir, TILE_NAME_PATTERN_WIN))
             )
         else
+            local convertCmd = getImageMagickCommand("convert")
             command = string.format(
-                'convert %s -crop %dx%d +repage %s',
+                '%s %s -crop %dx%d +repage %s',
+                convertCmd,
                 escapeShellArg(sourcePath),
                 tileWidth,
                 tileHeight,
