@@ -187,7 +187,7 @@ end
 -- This function takes a rendered image and splits it into carousel tiles
 -- based on the target tile size and user preferences.
 --
--- NEW APPROACH (v1.2.2):
+-- NEW APPROACH (v1.2.7):
 -- 1. Divide the panoramic image into N tiles based on the desired ratio
 -- 2. Resize to the requested actual size
 --
@@ -198,8 +198,8 @@ end
 --   tileHeight: Target height of each tile (final output size)
 --   params: Table with additional parameters:
 --     - overflowHandling: 'addBands' or 'crop'
---     - backgroundColor: {r, g, b} values from 0-1
---     - frameColor: {r, g, b} values from 0-1
+--     - backgroundColor: LrColor object or {r, g, b} table with values from 0-1
+--     - frameColor: LrColor object or {r, g, b} table with values from 0-1
 --     - frameSize: Frame size in pixels
 --     - enableFrame: Boolean to enable frame
 --     - sourceWidth: Width of source image (from Lightroom)
@@ -303,32 +303,51 @@ function ImageProcessor.executeSplit(sourcePath, outputDir, tileWidth, tileHeigh
     local outputPattern = LrPathUtils.child(outputDir, baseName .. "_tile_%02d.jpg")
     
     -- Helper function to safely get color values
-    -- Handles both formats: {r, g, b} and {red, green, blue}
+    -- Handles multiple formats:
+    -- 1. LrColor objects (methods: red(), green(), blue())
+    -- 2. Tables with {r, g, b} keys
+    -- 3. Tables with {red, green, blue} keys
     local function getColorValue(colorTable, channel)
         if type(colorTable) ~= "table" then
             logDebug("Color is not a table, returning 0")
             return 0
         end
         
-        -- Try both short and long channel names
-        local channelMap = {
-            r = {"r", "red"},
-            g = {"g", "green"},
-            b = {"b", "blue"}
+        -- Channel mapping for short names to full names
+        local channelFullNames = {
+            r = "red",
+            g = "green",
+            b = "blue"
         }
         
-        local channelNames = channelMap[channel]
-        if not channelNames then
+        local fullName = channelFullNames[channel]
+        if not fullName then
             logDebug("Unknown channel: " .. tostring(channel))
             return 0
         end
         
-        -- Try each possible channel name
-        for _, name in ipairs(channelNames) do
-            local value = colorTable[name]
-            if type(value) == "number" then
+        -- First, try LrColor method access (e.g., colorTable:red())
+        -- LrColor objects have methods like red(), green(), blue()
+        if type(colorTable[fullName]) == "function" then
+            local success, value = pcall(function() return colorTable[fullName](colorTable) end)
+            if success and type(value) == "number" then
+                logDebug("Got color value via method " .. fullName .. "(): " .. tostring(value))
                 return math.max(0, math.min(1, value))
             end
+        end
+        
+        -- Second, try direct table access with full name (e.g., colorTable.red)
+        local value = colorTable[fullName]
+        if type(value) == "number" then
+            logDebug("Got color value via property " .. fullName .. ": " .. tostring(value))
+            return math.max(0, math.min(1, value))
+        end
+        
+        -- Third, try direct table access with short name (e.g., colorTable.r)
+        value = colorTable[channel]
+        if type(value) == "number" then
+            logDebug("Got color value via property " .. channel .. ": " .. tostring(value))
+            return math.max(0, math.min(1, value))
         end
         
         logDebug("Could not find valid value for channel: " .. channel)

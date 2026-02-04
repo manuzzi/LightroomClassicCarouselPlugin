@@ -282,5 +282,5 @@ If ImageMagick is not installed:
 
 For issues or questions:
 - GitHub: https://github.com/manuzzi/LightroomClassicCarouselPlugin/issues
-- Ensure you have the latest version (1.1.0 or higher)
+- Ensure you have the latest version (1.2.7 or higher)
 - Check that ImageMagick is properly installed for splitting features

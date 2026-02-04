@@ -476,7 +476,7 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
     local tileHeight = exportParams.tileHeight
     
     logInfo("========================================")
-    logInfo("Starting Instagram Carousel Export v1.2.2")
+    logInfo("Starting Instagram Carousel Export v1.2.7")
     logInfo("========================================")
     logInfo("Tile aspect ratio: " .. exportParams.aspectRatio)
     logInfo("Short side size: " .. exportParams.shortSideSize)
