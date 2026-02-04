@@ -25,8 +25,8 @@ return {
     -- Plugin Version
     VERSION = { 
         major = 1, 
-        minor = 2, 
-        revision = 7,
+        minor = 3, 
+        revision = 0,
         build = 0,
     },
     
