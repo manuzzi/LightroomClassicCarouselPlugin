@@ -1,7 +1,7 @@
 Instagram Carousel Generator for Adobe Lightroom Classic
 ============================================================
 
-Version: 1.1.0
+Version: 1.2.7
 
 ABOUT
 -----
@@ -17,7 +17,7 @@ FEATURES
 - Smart overflow handling with two options:
   * Add bands with optional customizable frames
   * Crop to fit perfectly
-- Customizable styling: background color, frame color, and frame width
+- Customizable styling: background color (RGB values), frame color (RGB values), and frame width
 - Support for multiple image formats (JPEG, TIFF, PNG)
 
 REQUIREMENTS

@@ -91,11 +91,12 @@ When your panoramic image doesn't divide evenly into the frame size:
 This option centers your image and adds colored bands to fill the remaining space:
 
 1. Select "Add bands with optional frame" radio button
-2. Choose a background color (default: white)
-   - Click the color well to choose any color
+2. Set the background color using RGB values (0-255):
+   - R (Red), G (Green), B (Blue) fields
+   - Default: White (255, 255, 255)
 3. Optionally enable frame:
    - Check "Enable Frame"
-   - Choose frame color (default: black)
+   - Set frame color using RGB values (default: black - 0, 0, 0)
    - Set frame size in pixels (default: 10px)
 4. Click Export
 
@@ -190,10 +191,11 @@ If ImageMagick is not installed:
 
 ### 4. Frame Styling
 
-- White background + black frame = classic look
-- Match background to dominant image color = cohesive feel
+- White background (R=255, G=255, B=255) + black frame (R=0, G=0, B=0) = classic look
+- Match background RGB values to dominant image color = cohesive feel
 - Thin frames (5-10px) = subtle
 - Thick frames (20-50px) = bold statement
+- Common colors: Gray (128, 128, 128), Navy (0, 0, 128), Cream (255, 253, 208)
 
 ## Troubleshooting
 
@@ -282,5 +284,5 @@ If ImageMagick is not installed:
 
 For issues or questions:
 - GitHub: https://github.com/manuzzi/LightroomClassicCarouselPlugin/issues
-- Ensure you have the latest version (1.1.0 or higher)
+- Ensure you have the latest version (1.2.7 or higher)
 - Check that ImageMagick is properly installed for splitting features
