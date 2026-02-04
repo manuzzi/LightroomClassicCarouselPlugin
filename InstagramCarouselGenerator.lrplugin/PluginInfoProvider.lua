@@ -18,9 +18,6 @@ local LrPrefs = import 'LrPrefs'
 local LrBinding = import 'LrBinding'
 local LrPathUtils = import 'LrPathUtils'
 
--- Load translation provider for localized strings
-local Str = require 'TranslationProvider'
-
 local pluginInfoProvider = {}
 
 --------------------------------------------------------------------------------
@@ -133,12 +130,15 @@ local function testImageMagick()
             if not installed then
                 local platformMsg
                 if isWindows() then
-                    platformMsg = Str.imageMagickNotAccessible .. "\n\n" .. Str.imageMagickInstallWindows
+                    platformMsg = LOC "$$$/InstagramCarousel/ImageMagick/NotAccessible=ImageMagick is not installed or not accessible." .. "\n\n" .. 
+                                  LOC "$$$/InstagramCarousel/ImageMagick/InstallWindows=To install:\n1. Download from https://imagemagick.org\n2. Run the installer\n3. Make sure to check 'Add to PATH' during installation\n4. Restart Lightroom"
                 else
-                    platformMsg = Str.imageMagickNotAccessible .. "\n\n" .. Str.imageMagickInstallMac .. "\n\n" .. Str.imageMagickSearchedPaths
+                    platformMsg = LOC "$$$/InstagramCarousel/ImageMagick/NotAccessible=ImageMagick is not installed or not accessible." .. "\n\n" .. 
+                                  LOC "$$$/InstagramCarousel/ImageMagick/InstallMac=To install:\n1. Using Homebrew: brew install imagemagick\n2. Or download from https://imagemagick.org\n3. Restart Lightroom after installation" .. "\n\n" ..
+                                  LOC "$$$/InstagramCarousel/ImageMagick/SearchedPaths=Searched paths:\n• /opt/homebrew/bin (Homebrew on Apple Silicon)\n• /usr/local/bin (Homebrew on Intel Macs)\n• /opt/local/bin (MacPorts)\n• /usr/bin (System)\n• System PATH"
                 end
                 
-                LrDialogs.message(Str.testImageMagickFailed, platformMsg, "critical")
+                LrDialogs.message(LOC "$$$/InstagramCarousel/Dialog/TestFailed=ImageMagick Test Failed", platformMsg, "critical")
                 return
             end
             
@@ -169,14 +169,15 @@ local function testImageMagick()
             end)
             
             if testSuccess and testResult and string.find(testResult, "ImageMagick") then
-                local versionStr = version or Str.statusUnknown
-                local locationStr = (path and path ~= "" and path or Str.statusSystemPath)
-                -- Use LOC with placeholders for the success message
+                local versionStr = version or LOC "$$$/InstagramCarousel/Status/Unknown=Unknown"
+                local locationStr = (path and path ~= "" and path or LOC "$$$/InstagramCarousel/Status/SystemPath=System PATH")
                 local successMsg = LOC("$$$/InstagramCarousel/ImageMagick/WorkingMsg=ImageMagick is working correctly!\n\nVersion: ^1\nLocation: ^2\n\nYou can use seamless carousel mode to split panoramic images.", versionStr, locationStr)
                 
-                LrDialogs.message(Str.testImageMagickSuccess, successMsg, "info")
+                LrDialogs.message(LOC "$$$/InstagramCarousel/Dialog/TestSuccess=ImageMagick Test Successful", successMsg, "info")
             else
-                LrDialogs.message(Str.testImageMagickFailed, Str.imageMagickTestFailedMsg, "warning")
+                LrDialogs.message(LOC "$$$/InstagramCarousel/Dialog/TestFailed=ImageMagick Test Failed", 
+                    LOC "$$$/InstagramCarousel/ImageMagick/TestFailedMsg=ImageMagick was detected but the test command failed.\n\nPlease try reinstalling ImageMagick and restart Lightroom.", 
+                    "warning")
             end
         end)
     end)
@@ -201,7 +202,7 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
     
     return {
         {
-            title = Str.sectionTitleMain,
+            title = LOC "$$$/InstagramCarousel/Section/Main=Instagram Carousel Generator",
             
             f:picture {
                 value = pluginPath,
@@ -212,7 +213,7 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             f:spacer { height = 10 },
             
             f:static_text {
-                title = Str.pluginDescription,
+                title = LOC "$$$/InstagramCarousel/Description=Instagram Carousel Generator helps you create seamless carousel posts for Instagram directly from Adobe Lightroom Classic.\n\nNew features: Aspect ratio presets, image splitting for panoramas, customizable bands and frames.",
                 fill_horizontal = 1,
                 width_in_chars = 50,
                 height_in_lines = 4,
@@ -221,7 +222,7 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             f:spacer { height = 10 },
             
             f:static_text {
-                title = Str.pluginVersion,
+                title = LOC "$$$/InstagramCarousel/PluginVersion=Version 1.4.0",
                 font = '<system/bold>',
             },
             
@@ -229,7 +230,7 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             
             f:row {
                 f:static_text {
-                    title = Str.labelGitHub,
+                    title = LOC "$$$/InstagramCarousel/Label/GitHub=GitHub:",
                     width = 60,
                 },
                 
@@ -244,11 +245,11 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
         },
         
         {
-            title = Str.sectionTitleCredits,
+            title = LOC "$$$/InstagramCarousel/Section/Credits=Credits & Support",
             
             f:row {
                 f:static_text {
-                    title = Str.labelDevelopedBy,
+                    title = LOC "$$$/InstagramCarousel/Label/DevelopedBy=Developed by:",
                     width = 80,
                 },
                 
@@ -260,7 +261,7 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             
             f:row {
                 f:static_text {
-                    title = Str.labelEmail,
+                    title = LOC "$$$/InstagramCarousel/Label/Email=Email:",
                     width = 80,
                 },
                 
@@ -275,7 +276,7 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             
             f:row {
                 f:static_text {
-                    title = Str.labelWebsite,
+                    title = LOC "$$$/InstagramCarousel/Label/Website=Website:",
                     width = 80,
                 },
                 
@@ -291,7 +292,7 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             f:spacer { height = 10 },
             
             f:static_text {
-                title = Str.supportMessage,
+                title = LOC "$$$/InstagramCarousel/Support/Message=If you find this plugin useful, please consider supporting its development:",
                 fill_horizontal = 1,
                 width_in_chars = 50,
             },
@@ -300,12 +301,12 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             
             f:row {
                 f:static_text {
-                    title = Str.labelPayPal,
+                    title = LOC "$$$/InstagramCarousel/Label/PayPal=PayPal:",
                     width = 80,
                 },
                 
                 f:static_text {
-                    title = Str.donateViaPayPal,
+                    title = LOC "$$$/InstagramCarousel/Support/Donate=Donate via PayPal",
                     text_color = LrColor("blue"),
                     font = '<system/bold>',
                     mouse_down = function()
@@ -318,19 +319,19 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             
             f:row {
                 f:static_text {
-                    title = Str.labelLicense,
+                    title = LOC "$$$/InstagramCarousel/Label/License=License:",
                     width = 80,
                 },
                 
                 f:static_text {
-                    title = Str.licenseText,
+                    title = LOC "$$$/InstagramCarousel/License/Text=MIT License - Copyright (c) 2026 Marco Manuzzi",
                 },
             },
             
             f:spacer { height = 10 },
             
             f:static_text {
-                title = Str.imageMagickCredits,
+                title = LOC "$$$/InstagramCarousel/Credits/ImageMagick=This plugin uses ImageMagick® for image processing:",
                 fill_horizontal = 1,
                 width_in_chars = 50,
             },
@@ -359,7 +360,7 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
                 },
                 
                 f:static_text {
-                    title = Str.imageMagickLicense,
+                    title = LOC "$$$/InstagramCarousel/License/ImageMagick=License: Apache 2.0 License",
                     text_color = LrColor("blue"),
                     mouse_down = function()
                         LrHttp.openUrlInBrowser("https://imagemagick.org/script/license.php")
@@ -369,16 +370,16 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
         },
         
         {
-            title = Str.sectionTitleImageMagick,
+            title = LOC "$$$/InstagramCarousel/Section/ImageMagick=ImageMagick Status",
             
             f:row {
                 f:static_text {
-                    title = Str.labelStatus,
+                    title = LOC "$$$/InstagramCarousel/Label/Status=Status:",
                     width = 80,
                 },
                 
                 f:static_text {
-                    title = imageMagickInstalled and Str.statusInstalled or Str.statusNotInstalled,
+                    title = imageMagickInstalled and LOC "$$$/InstagramCarousel/Status/Installed=✓ Installed" or LOC "$$$/InstagramCarousel/Status/NotInstalled=✗ Not Installed",
                     text_color = imageMagickInstalled and LrColor("green") or LrColor("red"),
                     font = '<system/bold>',
                 },
@@ -386,36 +387,36 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             
             imageMagickInstalled and f:row {
                 f:static_text {
-                    title = Str.labelVersion,
+                    title = LOC "$$$/InstagramCarousel/Label/Version=Version:",
                     width = 80,
                 },
                 
                 f:static_text {
-                    title = imageMagickVersion or Str.statusUnknown,
+                    title = imageMagickVersion or LOC "$$$/InstagramCarousel/Status/Unknown=Unknown",
                 },
             } or f:column {},
             
             imageMagickInstalled and f:row {
                 f:static_text {
-                    title = Str.labelLocation,
+                    title = LOC "$$$/InstagramCarousel/Label/Location=Location:",
                     width = 80,
                 },
                 
                 f:static_text {
-                    title = (imageMagickPath and imageMagickPath ~= "") and imageMagickPath or Str.statusSystemPath,
+                    title = (imageMagickPath and imageMagickPath ~= "") and imageMagickPath or LOC "$$$/InstagramCarousel/Status/SystemPath=System PATH",
                 },
             } or f:column {},
             
             f:spacer { height = 5 },
             
             imageMagickInstalled and f:static_text {
-                title = Str.imageMagickAvailable,
+                title = LOC "$$$/InstagramCarousel/ImageMagick/Available=ImageMagick is properly installed. You can use seamless carousel mode to split panoramic images.",
                 fill_horizontal = 1,
                 width_in_chars = 50,
                 height_in_lines = 2,
             } or f:static_text {
-                title = Str.imageMagickRequired .. "\n\n" ..
-                        (isWindowsPlatform and Str.imageMagickInstallWindows or Str.imageMagickInstallMac),
+                title = LOC "$$$/InstagramCarousel/ImageMagick/Required=ImageMagick is required for splitting panoramic images into carousel tiles." .. "\n\n" ..
+                        (isWindowsPlatform and LOC "$$$/InstagramCarousel/ImageMagick/InstallWindows=To install:\n1. Download from https://imagemagick.org\n2. Run the installer\n3. Make sure to check 'Add to PATH' during installation\n4. Restart Lightroom" or LOC "$$$/InstagramCarousel/ImageMagick/InstallMac=To install:\n1. Using Homebrew: brew install imagemagick\n2. Or download from https://imagemagick.org\n3. Restart Lightroom after installation"),
                 fill_horizontal = 1,
                 width_in_chars = 50,
                 height_in_lines = isWindowsPlatform and 6 or 5,
@@ -425,7 +426,7 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             
             f:row {
                 f:push_button {
-                    title = Str.btnTestImageMagick,
+                    title = LOC "$$$/InstagramCarousel/Button/TestImageMagick=Test ImageMagick",
                     action = function()
                         testImageMagick()
                     end,
@@ -434,11 +435,11 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
         },
         
         {
-            title = Str.sectionTitleLogging,
+            title = LOC "$$$/InstagramCarousel/Section/Logging=Logging Settings",
             
             f:row {
                 f:static_text {
-                    title = Str.labelLogLevel,
+                    title = LOC "$$$/InstagramCarousel/Label/LogLevel=Log Level:",
                     width = 80,
                 },
                 
@@ -448,10 +449,10 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
                         bind_to_object = prefs,
                     },
                     items = {
-                        { title = Str.logLevelDebug, value = "debug" },
-                        { title = Str.logLevelInfo, value = "info" },
-                        { title = Str.logLevelWarn, value = "warn" },
-                        { title = Str.logLevelError, value = "error" },
+                        { title = LOC "$$$/InstagramCarousel/LogLevel/Debug=Debug (verbose)", value = "debug" },
+                        { title = LOC "$$$/InstagramCarousel/LogLevel/Info=Info (default)", value = "info" },
+                        { title = LOC "$$$/InstagramCarousel/LogLevel/Warn=Warning", value = "warn" },
+                        { title = LOC "$$$/InstagramCarousel/LogLevel/Error=Error only", value = "error" },
                     },
                     immediate = true,
                 },
@@ -460,7 +461,7 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             f:spacer { height = 5 },
             
             f:static_text {
-                title = Str.loggingHelpText,
+                title = LOC "$$$/InstagramCarousel/Logging/HelpText=Set to 'Debug' for detailed logging when troubleshooting issues.\nLogs can be viewed in Lightroom's Console (Help > System Info > Show Log File).",
                 fill_horizontal = 1,
                 width_in_chars = 50,
                 height_in_lines = 2,

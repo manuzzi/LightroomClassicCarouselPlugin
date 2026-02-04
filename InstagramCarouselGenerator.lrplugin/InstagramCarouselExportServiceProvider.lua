@@ -21,9 +21,6 @@ local LrSystemInfo = import 'LrSystemInfo'
 local LrPrefs = import 'LrPrefs'
 local LrShell = import 'LrShell'
 
--- Load translation provider for localized strings
-local Str = require 'TranslationProvider'
-
 -- Create a logger for this module
 local logger = LrLogger('InstagramCarouselExportService')
 logger:enable("print")
@@ -193,12 +190,12 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
     
     return {
         {
-            title = Str.exportSectionCarousel,
+            title = LOC "$$$/InstagramCarousel/Export/Section/Carousel=Instagram Carousel Settings",
             synopsis = bind 'seamlessMode',
             
             f:row {
                 f:checkbox {
-                    title = Str.labelSeamlessMode,
+                    title = LOC "$$$/InstagramCarousel/Export/Label/SeamlessMode=Enable Seamless Carousel Mode (split panoramas)",
                     value = bind 'seamlessMode',
                     checked_value = true,
                     unchecked_value = false,
@@ -212,7 +209,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 spacing = f:control_spacing(),
                 
                 f:static_text {
-                    title = Str.labelAspectRatio,
+                    title = LOC "$$$/InstagramCarousel/Export/Label/AspectRatio=Tile Aspect Ratio:",
                     alignment = 'right',
                     width = share 'label_width',
                 },
@@ -221,11 +218,11 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                     value = bind 'aspectRatio',
                     enabled = bind 'seamlessMode',
                     items = {
-                        { title = Str.aspectRatio4x5, value = '4:5' },
-                        { title = Str.aspectRatio1x1, value = '1:1' },
-                        { title = Str.aspectRatio5x4, value = '5:4' },
-                        { title = Str.aspectRatio16x9, value = '16:9' },
-                        { title = Str.aspectRatio9x16, value = '9:16' },
+                        { title = LOC "$$$/InstagramCarousel/AspectRatio/4x5=4:5 (Portrait)", value = '4:5' },
+                        { title = LOC "$$$/InstagramCarousel/AspectRatio/1x1=1:1 (Square)", value = '1:1' },
+                        { title = LOC "$$$/InstagramCarousel/AspectRatio/5x4=5:4 (Landscape)", value = '5:4' },
+                        { title = LOC "$$$/InstagramCarousel/AspectRatio/16x9=16:9 (Wide)", value = '16:9' },
+                        { title = LOC "$$$/InstagramCarousel/AspectRatio/9x16=9:16 (Vertical)", value = '9:16' },
                     },
                 },
             },
@@ -235,7 +232,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 spacing = f:control_spacing(),
                 
                 f:static_text {
-                    title = Str.labelShortSideSize,
+                    title = LOC "$$$/InstagramCarousel/Export/Label/ShortSideSize=Short Side Size:",
                     alignment = 'right',
                     width = share 'label_width',
                 },
@@ -244,11 +241,11 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                     value = bind 'shortSideSize',
                     enabled = bind 'seamlessMode',
                     items = {
-                        { title = Str.size1080, value = '1080' },
-                        { title = Str.size2160, value = '2160' },
-                        { title = Str.size3240, value = '3240' },
-                        { title = Str.size4320, value = '4320' },
-                        { title = Str.sizeCustom, value = 'custom' },
+                        { title = LOC "$$$/InstagramCarousel/Size/1080=1080 px (Instagram standard)", value = '1080' },
+                        { title = LOC "$$$/InstagramCarousel/Size/2160=2160 px (2x)", value = '2160' },
+                        { title = LOC "$$$/InstagramCarousel/Size/3240=3240 px (3x)", value = '3240' },
+                        { title = LOC "$$$/InstagramCarousel/Size/4320=4320 px (4x)", value = '4320' },
+                        { title = LOC "$$$/InstagramCarousel/Size/Custom=Custom", value = 'custom' },
                     },
                 },
             },
@@ -258,7 +255,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 spacing = f:control_spacing(),
                 
                 f:static_text {
-                    title = Str.labelCustomSize,
+                    title = LOC "$$$/InstagramCarousel/Export/Label/CustomSize=Custom Size:",
                     alignment = 'right',
                     width = share 'label_width',
                 },
@@ -273,7 +270,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 },
                 
                 f:static_text {
-                    title = Str.labelPixels,
+                    title = LOC "$$$/InstagramCarousel/Export/Label/Pixels=px",
                 },
             },
             
@@ -282,7 +279,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 spacing = f:control_spacing(),
                 
                 f:static_text {
-                    title = Str.labelTileSize,
+                    title = LOC "$$$/InstagramCarousel/Export/Label/TileSize=Tile Size:",
                     alignment = 'right',
                     width = share 'label_width',
                 },
@@ -302,14 +299,14 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
         },
         
         {
-            title = Str.exportSectionOverflow,
+            title = LOC "$$$/InstagramCarousel/Export/Section/Overflow=Overflow Handling",
             synopsis = bind 'overflowHandling',
             
             f:row {
                 spacing = f:control_spacing(),
                 
                 f:static_text {
-                    title = Str.overflowWhenDoesntFit,
+                    title = LOC "$$$/InstagramCarousel/Overflow/WhenDoesntFit=When image doesn't fit perfectly:",
                     alignment = 'left',
                     width = share 'label_width',
                 },
@@ -319,7 +316,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 spacing = f:control_spacing(),
                 
                 f:radio_button {
-                    title = Str.overflowAddBands,
+                    title = LOC "$$$/InstagramCarousel/Overflow/AddBands=Add bands with optional frame",
                     value = bind 'overflowHandling',
                     checked_value = 'addBands',
                     enabled = bind 'seamlessMode',
@@ -330,7 +327,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 spacing = f:control_spacing(),
                 
                 f:radio_button {
-                    title = Str.overflowCropToFit,
+                    title = LOC "$$$/InstagramCarousel/Overflow/CropToFit=Crop to fit perfectly",
                     value = bind 'overflowHandling',
                     checked_value = 'crop',
                     enabled = bind 'seamlessMode',
@@ -339,7 +336,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
         },
         
         {
-            title = Str.exportSectionBandFrame,
+            title = LOC "$$$/InstagramCarousel/Export/Section/BandFrame=Band & Frame Settings",
             synopsis = bind 'enableFrame',
             
             -- Row 1: Band Color RGB sliders
@@ -347,7 +344,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 spacing = f:control_spacing(),
                 
                 f:static_text {
-                    title = Str.labelBandColor,
+                    title = LOC "$$$/InstagramCarousel/Label/BandColor=Band Color:",
                     alignment = 'right',
                     width = share 'label_width',
                 },
@@ -394,7 +391,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 f:spacer { width = 10 },
                 
                 f:checkbox {
-                    title = Str.labelEnableFrame,
+                    title = LOC "$$$/InstagramCarousel/Label/EnableFrame=Enable Frame",
                     value = bind 'enableFrame',
                     checked_value = true,
                     unchecked_value = false,
@@ -407,7 +404,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 spacing = f:control_spacing(),
                 
                 f:static_text {
-                    title = Str.labelFrameColor,
+                    title = LOC "$$$/InstagramCarousel/Label/FrameColor=Frame Color:",
                     alignment = 'right',
                     width = share 'label_width',
                 },
@@ -454,7 +451,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 f:spacer { width = 10 },
                 
                 f:static_text {
-                    title = Str.labelFrameSize,
+                    title = LOC "$$$/InstagramCarousel/Label/FrameSize=Size:",
                 },
                 
                 f:edit_field {
@@ -467,17 +464,17 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 },
                 
                 f:static_text {
-                    title = Str.labelPixels,
+                    title = LOC "$$$/InstagramCarousel/Export/Label/Pixels=px",
                 },
             },
         },
         
         {
-            title = Str.exportSectionAfterExport,
+            title = LOC "$$$/InstagramCarousel/Export/Section/AfterExport=After Export",
             
             f:row {
                 f:checkbox {
-                    title = Str.labelOpenFolder,
+                    title = LOC "$$$/InstagramCarousel/Label/OpenFolder=Open export folder after export",
                     value = bind 'openExportFolder',
                     checked_value = true,
                     unchecked_value = false,
@@ -581,7 +578,7 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
     
     -- Progress scope (localized)
     local progressScope = exportContext:configureProgress({
-        title = Str.progressExportTitle,
+        title = LOC "$$$/InstagramCarousel/Progress/ExportTitle=Instagram Carousel Export",
     })
     
     -- Track completed renditions for progress
@@ -641,7 +638,10 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
                 
                 if not sourceWidth or not sourceHeight then
                     logError("Could not determine source image dimensions")
-                    LrDialogs.message(Str.warningTitle, Str.warningDimensionsNotDetermined, "warning")
+                    LrDialogs.message(
+                        LOC "$$$/InstagramCarousel/Warning/Title=Warning", 
+                        LOC "$$$/InstagramCarousel/Warning/DimensionsNotDetermined=Could not determine image dimensions.\n\nPlease ensure ImageMagick is installed and accessible.\n\nOriginal file has been exported without splitting.", 
+                        "warning")
                 else
                     logInfo("Source dimensions: " .. sourceWidth .. "x" .. sourceHeight)
                     
@@ -720,17 +720,17 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
                         
                         local messageText
                         if string.find(errorDetails, "not installed") or string.find(errorDetails, "not in PATH") then
-                            messageText = Str.warningImageMagickNotInstalled .. "\n"
+                            messageText = LOC "$$$/InstagramCarousel/Warning/ImageMagickNotInstalled=Could not split image into carousel tiles. ImageMagick is not installed or not accessible.\n\nOriginal file has been exported without splitting.\n\nTo enable image splitting, please install ImageMagick:" .. "\n"
                             if platform == "Windows" then
-                                messageText = messageText .. Str.imageMagickInstallWindows
+                                messageText = messageText .. LOC "$$$/InstagramCarousel/ImageMagick/InstallWindows=To install:\n1. Download from https://imagemagick.org\n2. Run the installer\n3. Make sure to check 'Add to PATH' during installation\n4. Restart Lightroom"
                             else
-                                messageText = messageText .. Str.imageMagickInstallMac
+                                messageText = messageText .. LOC "$$$/InstagramCarousel/ImageMagick/InstallMac=To install:\n1. Using Homebrew: brew install imagemagick\n2. Or download from https://imagemagick.org\n3. Restart Lightroom after installation"
                             end
                         else
                             messageText = LOC("$$$/InstagramCarousel/Warning/ImageMagickError=Could not split image into carousel tiles.\n\nError: ^1\n\nOriginal file has been exported without splitting.", errorDetails)
                         end
                         
-                        LrDialogs.message(Str.warningTitle, messageText, "info")
+                        LrDialogs.message(LOC "$$$/InstagramCarousel/Warning/Title=Warning", messageText, "info")
                     end
                 end
             else
