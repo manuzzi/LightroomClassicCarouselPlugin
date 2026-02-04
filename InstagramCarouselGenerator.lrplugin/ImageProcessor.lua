@@ -248,10 +248,7 @@ function ImageProcessor.splitImageIntoTiles(sourcePath, outputDir, tileWidth, ti
     
     logDebug("Total width for tiles: " .. totalWidth)
     
-    -- Add baseName to params for executeSplit
-    params.baseName = baseName
-    
-    -- Execute the split
+    -- Execute the split (baseName is already in params or uses fallback)
     local success, errorMsg = ImageProcessor.executeSplit(
         sourcePath,
         outputDir,
