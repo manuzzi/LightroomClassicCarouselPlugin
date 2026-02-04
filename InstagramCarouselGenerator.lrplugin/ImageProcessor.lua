@@ -303,15 +303,36 @@ function ImageProcessor.executeSplit(sourcePath, outputDir, tileWidth, tileHeigh
     local outputPattern = LrPathUtils.child(outputDir, baseName .. "_tile_%02d.jpg")
     
     -- Helper function to safely get color values
+    -- Handles both formats: {r, g, b} and {red, green, blue}
     local function getColorValue(colorTable, channel)
         if type(colorTable) ~= "table" then
+            logDebug("Color is not a table, returning 0")
             return 0
         end
-        local value = colorTable[channel]
-        if type(value) ~= "number" then
+        
+        -- Try both short and long channel names
+        local channelMap = {
+            r = {"r", "red"},
+            g = {"g", "green"},
+            b = {"b", "blue"}
+        }
+        
+        local channelNames = channelMap[channel]
+        if not channelNames then
+            logDebug("Unknown channel: " .. tostring(channel))
             return 0
         end
-        return math.max(0, math.min(1, value))
+        
+        -- Try each possible channel name
+        for _, name in ipairs(channelNames) do
+            local value = colorTable[name]
+            if type(value) == "number" then
+                return math.max(0, math.min(1, value))
+            end
+        end
+        
+        logDebug("Could not find valid value for channel: " .. channel)
+        return 0
     end
     
     -- Helper function to format color for ImageMagick
