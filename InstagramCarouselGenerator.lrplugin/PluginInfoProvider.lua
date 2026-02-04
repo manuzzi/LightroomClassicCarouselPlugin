@@ -70,6 +70,8 @@ end
 -- Check ImageMagick availability with path-aware detection
 
 local function checkImageMagick()
+    -- Note: LrTasks.pcall returns (success, firstReturnValue) so we need to
+    -- return all values as a table to preserve them
     local success, result = LrTasks.pcall(function()
         if isWindows() then
             -- Windows: try 'magick' command
@@ -81,18 +83,19 @@ local function checkImageMagick()
                 
                 if output and (string.find(output, "ImageMagick") or string.find(output, "Version")) then
                     local version = output:match("Version: ImageMagick ([%d%.%-]+)")
-                    return true, version, "System PATH"
+                    return { installed = true, version = version, path = "System PATH" }
                 end
             end
-            return false, nil, nil
+            return { installed = false, version = nil, path = nil }
         else
             -- macOS/Unix: use path-aware detection
-            return findImageMagickOnMac()
+            local installed, version, path = findImageMagickOnMac()
+            return { installed = installed, version = version, path = path }
         end
     end)
     
     if success and result then
-        return result
+        return result.installed, result.version, result.path
     else
         return false, nil, nil
     end

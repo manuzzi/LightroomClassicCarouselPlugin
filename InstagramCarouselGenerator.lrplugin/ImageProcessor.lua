@@ -165,6 +165,8 @@ end
 
 function ImageProcessor.getImageDimensions(imagePath)
     -- Try to use ImageMagick's identify command if available
+    -- Note: LrTasks.pcall returns (success, firstReturnValue) so we need to
+    -- return dimensions as a table to preserve both width and height
     local success, result = LrTasks.pcall(function()
         local command
         if WIN_ENV then
@@ -174,25 +176,32 @@ function ImageProcessor.getImageDimensions(imagePath)
             command = identifyCmd .. ' -format "%w %h" ' .. escapeShellArg(imagePath) .. ' 2>/dev/null'
         end
         
+        logger:info("Getting image dimensions with command: " .. command)
+        
         local handle = io.popen(command)
         if handle then
             local output = handle:read("*a")
             handle:close()
             
+            logger:info("identify output: " .. tostring(output))
+            
             if output then
                 local width, height = output:match("(%d+)%s+(%d+)")
                 if width and height then
-                    return tonumber(width), tonumber(height)
+                    -- Return as table to preserve both values through pcall
+                    return { width = tonumber(width), height = tonumber(height) }
                 end
             end
         end
-        return nil, nil
+        return nil
     end)
     
-    if success and result then
-        return result
+    if success and result and result.width and result.height then
+        logger:info(string.format("Image dimensions: %dx%d", result.width, result.height))
+        return result.width, result.height
     end
     
+    logger:warn("Could not determine image dimensions")
     return nil, nil
 end
 
