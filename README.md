@@ -34,6 +34,24 @@ The Instagram Carousel Generator is a Lightroom Classic plugin that helps photog
 8. Click `Done`
 9. **Verify ImageMagick Status**: In the Plugin Manager, check the "ImageMagick Status" section to ensure it shows "✓ Installed" (green) for seamless carousel functionality
 
+## Updates
+
+The plugin includes an automatic update checker that notifies you when new versions are available.
+
+### Checking for Updates
+
+1. Go to `File > Plug-in Manager`
+2. Select `Instagram Carousel Generator`
+3. Navigate to the **Updates** section
+4. Click **Check for Updates** to check for the latest version
+5. If an update is available:
+   - The status will show "Update available: [version number]" in green
+   - Click **Download Latest** to open the release page in your browser
+6. Download and install the new version following the installation instructions
+
+The plugin checks against the official GitHub releases at:
+https://github.com/manuzzi/LightroomClassicCarouselPlugin/releases
+
 ## Usage
 
 ### Checking ImageMagick Installation
