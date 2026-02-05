@@ -17,7 +17,7 @@ return {
     LrPluginInfoUrl = "https://github.com/manuzzi/LightroomClassicCarouselPlugin",
     
     -- Unique Plugin Identifier (reverse domain notation)
-    LrToolkitIdentifier = "com.manuzzi.lightroom.instagramcarousel",
+    LrToolkitIdentifier = "work.manuzzi.lightroom.instagramcarousel",
     
     -- Main Plugin Module
     LrInitPlugin = "InstagramCarouselGenerator.lua",
@@ -25,8 +25,8 @@ return {
     -- Plugin Version
     VERSION = { 
         major = 1, 
-        minor = 3, 
-        revision = 0,
+        minor = 4, 
+        revision = 1,
         build = 0,
     },
     
@@ -40,7 +40,7 @@ return {
     LrHelpMenuItems = {
         {
             title = "About Instagram Carousel Generator",
-            file = "Documentation/About.txt",
+            file = "About.lua",
         },
     },
     

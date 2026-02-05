@@ -18,6 +18,32 @@ local LrPrefs = import 'LrPrefs'
 local LrBinding = import 'LrBinding'
 local LrPathUtils = import 'LrPathUtils'
 
+local function getVersionString()
+    local version = _PLUGIN and _PLUGIN.VERSION
+    if not version then
+        local infoPath = LrPathUtils.child(_PLUGIN.path, "Info.lua")
+        local ok, info = pcall(dofile, infoPath)
+        if ok and type(info) == "table" then
+            version = info.VERSION
+        end
+    end
+
+    if not version then
+        return nil
+    end
+
+    local major = tonumber(version.major) or 0
+    local minor = tonumber(version.minor) or 0
+    local revision = tonumber(version.revision) or 0
+    local build = tonumber(version.build) or 0
+
+    local base = string.format("%d.%d.%d", major, minor, revision)
+    if build > 0 then
+        return base .. "." .. tostring(build)
+    end
+    return base
+end
+
 local pluginInfoProvider = {}
 
 --------------------------------------------------------------------------------
@@ -201,6 +227,7 @@ end
 -- Section for Top of Plugin Manager Dialog
 
 function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
+    local versionString = getVersionString() or "Unknown"
     -- Check ImageMagick status
     local imageMagickInstalled, imageMagickVersion, imageMagickPath = checkImageMagick()
     local isWindowsPlatform = isWindows()
@@ -236,7 +263,7 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             f:spacer { height = 10 },
             
             f:static_text {
-                title = "Version 1.3.0",
+                title = "Version " .. versionString,
                 font = '<system/bold>',
             },
             

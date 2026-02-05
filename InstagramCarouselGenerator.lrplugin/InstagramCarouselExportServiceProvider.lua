@@ -22,6 +22,32 @@ local LrPrefs = import 'LrPrefs'
 local LrShell = import 'LrShell'
 local LrColor = import 'LrColor'
 
+local function getVersionString()
+    local version = _PLUGIN and _PLUGIN.VERSION
+    if not version then
+        local infoPath = LrPathUtils.child(_PLUGIN.path, "Info.lua")
+        local ok, info = pcall(dofile, infoPath)
+        if ok and type(info) == "table" then
+            version = info.VERSION
+        end
+    end
+
+    if not version then
+        return nil
+    end
+
+    local major = tonumber(version.major) or 0
+    local minor = tonumber(version.minor) or 0
+    local revision = tonumber(version.revision) or 0
+    local build = tonumber(version.build) or 0
+
+    local base = string.format("%d.%d.%d", major, minor, revision)
+    if build > 0 then
+        return base .. "." .. tostring(build)
+    end
+    return base
+end
+
 -- Create a logger for this module
 local logger = LrLogger('InstagramCarouselExportService')
 logger:enable("print")
@@ -615,8 +641,9 @@ function exportServiceProvider.processRenderedPhotos(functionContext, exportCont
     local tileWidth = exportParams.tileWidth
     local tileHeight = exportParams.tileHeight
     
+    local versionString = getVersionString() or "Unknown"
     logInfo("========================================")
-    logInfo("Starting Instagram Carousel Export v1.2.7")
+    logInfo("Starting Instagram Carousel Export v" .. versionString)
     logInfo("========================================")
     logInfo("Tile aspect ratio: " .. exportParams.aspectRatio)
     logInfo("Short side size: " .. exportParams.shortSideSize)

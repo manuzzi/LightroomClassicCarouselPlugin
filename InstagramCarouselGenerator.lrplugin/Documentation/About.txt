@@ -1,8 +1,6 @@
 Instagram Carousel Generator for Adobe Lightroom Classic
 ============================================================
 
-Version: 1.2.7
-
 ABOUT
 -----
 The Instagram Carousel Generator plugin helps you create seamless carousel 
@@ -28,29 +26,6 @@ For seamless carousel mode (image splitting), ImageMagick must be installed:
 
 Without ImageMagick, photos will be exported as single images.
 
-INSTALLATION
-------------
-1. Download the plugin
-2. Copy the InstagramCarouselGenerator.lrplugin folder to:
-   - macOS: ~/Library/Application Support/Adobe/Lightroom Classic/Plugins/
-   - Windows: %APPDATA%\Adobe\Lightroom Classic\Plugins\
-3. Open Lightroom Classic
-4. Go to File > Plug-in Manager
-5. Click "Add" and select the InstagramCarouselGenerator.lrplugin folder
-6. Click "Done"
-
-USAGE
------
-1. Select photos in Lightroom Classic Library module
-2. Go to File > Export
-3. Select "Instagram Carousel" from the export presets
-4. Configure your settings:
-   - Aspect Ratio: Choose Instagram standard or custom
-   - Seamless Mode: Enable to split panoramas into carousel tiles
-   - Overflow Handling: Add bands or crop to fit
-   - Band & Frame Settings: Customize colors and frame size
-5. Click "Export"
-
 SUPPORT
 -------
 For issues, feature requests, or contributions, please visit:
@@ -62,4 +37,4 @@ See LICENSE file in the repository root.
 
 COPYRIGHT
 ---------
-Copyright (c) 2026 Manuzzi
+Copyright (c) 2026 Marco Manuzzi
