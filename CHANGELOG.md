@@ -2,7 +2,7 @@
 
 All notable changes to the Instagram Carousel Generator plugin will be documented in this file.
 
-## [Unreleased]
+## [1.5.0] - 2026-02-05
 
 ### Added
 - Update check feature in Plugin Manager
