@@ -2,6 +2,17 @@
 
 All notable changes to the Instagram Carousel Generator plugin will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- Update check feature in Plugin Manager
+  - Automatic version comparison with GitHub releases
+  - "Check for Updates" button to manually check for new versions
+  - "Download Latest" button to open the latest release page
+  - Status display showing current version and update availability
+  - Persistent storage of last check time and latest version information
+  - Cross-platform support (macOS and Windows)
+
 ## [1.4.0] - 2026-02-05
 
 ### Added
