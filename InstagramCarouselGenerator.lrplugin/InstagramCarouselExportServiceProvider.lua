@@ -417,7 +417,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                     min = 0,
                     max = 255,
                     precision = 0,
-                    enabled = LrBinding.andAllKeys('seamlessMode', LrBinding.keyEquals('overflowHandling', 'addBands')),
+                    enabled = false,
                 },
                 
                 f:static_text {
@@ -430,7 +430,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                     min = 0,
                     max = 255,
                     precision = 0,
-                    enabled = LrBinding.andAllKeys('seamlessMode', LrBinding.keyEquals('overflowHandling', 'addBands')),
+                    enabled = false,
                 },
                 
                 f:static_text {
@@ -443,7 +443,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                     min = 0,
                     max = 255,
                     precision = 0,
-                    enabled = LrBinding.andAllKeys('seamlessMode', LrBinding.keyEquals('overflowHandling', 'addBands')),
+                    enabled = false,
                 },
                 
                 f:spacer { width = 10 },
@@ -482,7 +482,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                     min = 0,
                     max = 255,
                     precision = 0,
-                    enabled = LrBinding.andAllKeys('seamlessMode', 'enableFrame'),
+                    enabled = false,
                 },
                 
                 f:static_text {
@@ -495,7 +495,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                     min = 0,
                     max = 255,
                     precision = 0,
-                    enabled = LrBinding.andAllKeys('seamlessMode', 'enableFrame'),
+                    enabled = false,
                 },
                 
                 f:static_text {
@@ -508,7 +508,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                     min = 0,
                     max = 255,
                     precision = 0,
-                    enabled = LrBinding.andAllKeys('seamlessMode', 'enableFrame'),
+                    enabled = false,
                 },
                 
                 f:spacer { width = 10 },
