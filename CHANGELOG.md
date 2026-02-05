@@ -2,30 +2,80 @@
 
 All notable changes to the Instagram Carousel Generator plugin will be documented in this file.
 
+## [1.4.0] - 2026-02-05
+
+### Added
+- Reintroduced `color_well` pickers for Band and Frame colors.
+
+### Changed
+- Greyed out RGB fields to prevent manual edits when using the color picker.
+- Hid or disabled Band & Frame settings when Crop mode is selected.
+- Refactored helper logic with `roundToInt` for maintainability.
+
+### Updated
+- Funding metadata.
+
+## [1.3.0] - 2026-02-04
+
+### Added
+- Plugin logo.
+- ImageMagick software credits with Apache 2.0 license link.
+
+### Changed
+- Updated the plugin admin panel with credits, donation info, license, logo, and version.
+
 ## [1.2.7] - 2026-02-04
 
 ### Fixed
-- **Band and Frame colors not applied correctly**: Replaced problematic color_well widget with direct RGB input fields. Colors are now specified using three numeric fields (R, G, B) with values from 0-255, which provides reliable and predictable color selection.
+- Band and Frame color application when using the color wheel.
 
 ### Changed
-- **UI Redesign**: Band Color and Frame Color are now set using separate R, G, B input fields instead of a color picker widget
-  - Default Band Color: White (R=255, G=255, B=255)
-  - Default Frame Color: Black (R=0, G=0, B=0)
-- Simplified color handling in ImageProcessor - no more complex LrColor parsing needed
+- Replaced `color_well` with RGB input fields for reliable color selection.
+- Refactored duplicate color formatting helpers.
 
-## [1.2.6] - Previous Release
+### Updated
+- Added PayPal donation link in the README.
+- Ignored macOS `.DS_Store` files.
 
-### Features
-- ImageMagick detection improvements
-- Plugin Manager status display for ImageMagick availability
-- Enhanced error messages with platform-specific installation instructions
+## [1.2.6] - 2026-02-04
 
-## [1.1.0] - Initial Release
+### Added
+- Original filename appended to tile names.
 
-### Features
-- Instagram-optimized export with multiple aspect ratio presets (4:5, 1:1, 5:4, 16:9, 9:16)
-- Seamless carousel mode for splitting panoramic photos into edge-to-edge tiles
-- Smart overflow handling with bands or crop options
-- Customizable background and frame colors
-- Support for JPEG, TIFF, and PNG export formats
-- sRGB and Adobe RGB color space options
+### Changed
+- UI improvements: hide Video panel, rearranged Band settings, and disabled controls when Seamless mode is off.
+- Improved label clarity (Band Color, Frame Size).
+
+### Fixed
+- Frame color parsing for `r/g/b` and `red/green/blue` formats.
+- Background color logging with safe access checks.
+- ImageMagick location detection issues.
+
+### Removed
+- Redundant `baseName` assignment.
+
+## [1.2.3] - 2026-02-04
+
+### Fixed
+- Crop mode and frame application order.
+
+### Changed
+- Improved rounding clarity in tile count calculation.
+
+## [1.2.2] - 2026-02-04
+
+### Added
+- Ratio-based tile splitting.
+- Short-side size options.
+- Open export folder option.
+
+### Fixed
+- Crop mode behavior.
+- Band positioning.
+- Frame color error.
+- Progress bar updates.
+
+## [1.2.0] - 2026-02-04
+
+### Added
+- Initial tagged release.
