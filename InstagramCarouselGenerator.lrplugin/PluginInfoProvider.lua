@@ -17,6 +17,10 @@ local LrFunctionContext = import 'LrFunctionContext'
 local LrPrefs = import 'LrPrefs'
 local LrBinding = import 'LrBinding'
 local LrPathUtils = import 'LrPathUtils'
+local LrLogger = import 'LrLogger'
+
+local logger = LrLogger('InstagramCarouselPluginInfoProvider')
+logger:enable('print')
 
 local function getVersionString()
     local version = _PLUGIN and _PLUGIN.VERSION
@@ -224,6 +228,190 @@ local function testImageMagick()
 end
 
 --------------------------------------------------------------------------------
+-- Version Comparison
+
+local function parseVersion(versionString)
+    if not versionString then
+        return nil
+    end
+    
+    -- Remove 'v' prefix if present
+    local cleanVersion = versionString:match("^v?(.+)$")
+    
+    -- Parse version numbers
+    local major, minor, revision, build = cleanVersion:match("^(%d+)%.(%d+)%.(%d+)%.?(%d*)$")
+    
+    if not major then
+        -- Try without build number
+        major, minor, revision = cleanVersion:match("^(%d+)%.(%d+)%.(%d+)$")
+    end
+    
+    if not major then
+        return nil
+    end
+    
+    return {
+        major = tonumber(major) or 0,
+        minor = tonumber(minor) or 0,
+        revision = tonumber(revision) or 0,
+        build = tonumber(build) or 0,
+    }
+end
+
+local function compareVersions(v1, v2)
+    -- Returns: 1 if v1 > v2, -1 if v1 < v2, 0 if equal
+    if not v1 or not v2 then
+        return 0
+    end
+    
+    if v1.major ~= v2.major then
+        return v1.major > v2.major and 1 or -1
+    end
+    
+    if v1.minor ~= v2.minor then
+        return v1.minor > v2.minor and 1 or -1
+    end
+    
+    if v1.revision ~= v2.revision then
+        return v1.revision > v2.revision and 1 or -1
+    end
+    
+    if v1.build ~= v2.build then
+        return v1.build > v2.build and 1 or -1
+    end
+    
+    return 0
+end
+
+--------------------------------------------------------------------------------
+-- Check for Updates
+
+local function checkForUpdates(propertyTable)
+    LrFunctionContext.callWithContext("checkForUpdates", function(context)
+        LrDialogs.attachErrorDialogToFunctionContext(context)
+        
+        LrTasks.startAsyncTask(function()
+            local prefs = LrPrefs.prefsForPlugin()
+            
+            -- Update UI to show checking status
+            if propertyTable then
+                propertyTable.updateCheckStatus = "Checking for updates..."
+                propertyTable.updateAvailable = false
+            end
+            
+            logger:info("Checking for updates...")
+            
+            -- GitHub API URL for latest release
+            local apiUrl = "https://api.github.com/repos/manuzzi/LightroomClassicCarouselPlugin/releases/latest"
+            
+            local success, response = LrTasks.pcall(function()
+                local result, hdrs = LrHttp.get(apiUrl)
+                return result, hdrs
+            end)
+            
+            if not success then
+                logger:warn("Failed to check for updates: network error")
+                if propertyTable then
+                    propertyTable.updateCheckStatus = "Failed to check for updates (network error)"
+                    propertyTable.updateAvailable = false
+                end
+                LrDialogs.message("Update Check Failed", 
+                    "Could not connect to GitHub to check for updates.\n\n" ..
+                    "Please check your internet connection and try again.", 
+                    "warning")
+                return
+            end
+            
+            local result, hdrs = response, nil
+            if type(response) == "table" then
+                result, hdrs = response[1], response[2]
+            end
+            
+            if not result or result == "" then
+                logger:warn("Failed to check for updates: empty response")
+                if propertyTable then
+                    propertyTable.updateCheckStatus = "Failed to check for updates"
+                    propertyTable.updateAvailable = false
+                end
+                return
+            end
+            
+            -- Parse JSON response manually (Lua doesn't have built-in JSON parser)
+            local latestVersion = result:match('"tag_name"%s*:%s*"([^"]+)"')
+            local releaseUrl = result:match('"html_url"%s*:%s*"([^"]+)"')
+            local releaseName = result:match('"name"%s*:%s*"([^"]+)"')
+            
+            if not latestVersion then
+                logger:warn("Failed to parse update response")
+                if propertyTable then
+                    propertyTable.updateCheckStatus = "Failed to parse update information"
+                    propertyTable.updateAvailable = false
+                end
+                return
+            end
+            
+            logger:info("Latest version from GitHub: " .. latestVersion)
+            
+            -- Get current version
+            local currentVersionString = getVersionString()
+            logger:info("Current version: " .. (currentVersionString or "Unknown"))
+            
+            -- Parse and compare versions
+            local currentVersion = parseVersion(currentVersionString)
+            local latestVersionParsed = parseVersion(latestVersion)
+            
+            if not currentVersion or not latestVersionParsed then
+                logger:warn("Failed to parse version numbers")
+                if propertyTable then
+                    propertyTable.updateCheckStatus = "Failed to compare versions"
+                    propertyTable.updateAvailable = false
+                end
+                return
+            end
+            
+            local comparison = compareVersions(latestVersionParsed, currentVersion)
+            
+            -- Store update information in preferences
+            prefs.lastUpdateCheck = os.time()
+            prefs.latestVersion = latestVersion
+            prefs.latestVersionUrl = releaseUrl
+            
+            if comparison > 0 then
+                -- New version available
+                logger:info("New version available: " .. latestVersion)
+                if propertyTable then
+                    propertyTable.updateCheckStatus = "Update available: " .. latestVersion
+                    propertyTable.updateAvailable = true
+                    propertyTable.latestVersionUrl = releaseUrl
+                end
+                
+                local updateMsg = "A new version is available!\n\n" ..
+                                  "Current version: " .. currentVersionString .. "\n" ..
+                                  "Latest version: " .. latestVersion .. "\n\n" ..
+                                  (releaseName and releaseName ~= "" and "Release: " .. releaseName .. "\n\n" or "") ..
+                                  "Click OK to visit the download page."
+                
+                local result = LrDialogs.confirm(updateMsg, "Update Available", "OK", "Cancel")
+                if result == "ok" and releaseUrl then
+                    LrHttp.openUrlInBrowser(releaseUrl)
+                end
+            else
+                -- Already up to date
+                logger:info("Plugin is up to date")
+                if propertyTable then
+                    propertyTable.updateCheckStatus = "You have the latest version (" .. currentVersionString .. ")"
+                    propertyTable.updateAvailable = false
+                end
+                
+                LrDialogs.message("No Updates Available", 
+                    "You are already using the latest version (" .. currentVersionString .. ").", 
+                    "info")
+            end
+        end)
+    end)
+end
+
+--------------------------------------------------------------------------------
 -- Section for Top of Plugin Manager Dialog
 
 function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
@@ -236,6 +424,35 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
     local prefs = LrPrefs.prefsForPlugin()
     if not prefs.logLevel then
         prefs.logLevel = "info"  -- Default
+    end
+    
+    -- Initialize update check properties
+    if not propertyTable.updateCheckStatus then
+        local lastCheck = prefs.lastUpdateCheck
+        local latestVersion = prefs.latestVersion
+        
+        if lastCheck and latestVersion then
+            local currentVersion = parseVersion(versionString)
+            local latestVersionParsed = parseVersion(latestVersion)
+            
+            if currentVersion and latestVersionParsed then
+                local comparison = compareVersions(latestVersionParsed, currentVersion)
+                if comparison > 0 then
+                    propertyTable.updateCheckStatus = "Update available: " .. latestVersion
+                    propertyTable.updateAvailable = true
+                    propertyTable.latestVersionUrl = prefs.latestVersionUrl
+                else
+                    propertyTable.updateCheckStatus = "Up to date"
+                    propertyTable.updateAvailable = false
+                end
+            else
+                propertyTable.updateCheckStatus = "Click 'Check for Updates' to check"
+                propertyTable.updateAvailable = false
+            end
+        else
+            propertyTable.updateCheckStatus = "Click 'Check for Updates' to check"
+            propertyTable.updateAvailable = false
+        end
     end
     
     -- Get the plugin logo path
@@ -282,6 +499,70 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
                         LrHttp.openUrlInBrowser("https://github.com/manuzzi/LightroomClassicCarouselPlugin")
                     end,
                 },
+            },
+        },
+        
+        {
+            title = "Updates",
+            
+            f:row {
+                f:static_text {
+                    title = "Current Version:",
+                    width = 100,
+                },
+                
+                f:static_text {
+                    title = versionString,
+                    font = '<system/bold>',
+                },
+            },
+            
+            f:spacer { height = 5 },
+            
+            f:row {
+                f:static_text {
+                    title = "Status:",
+                    width = 100,
+                },
+                
+                f:static_text {
+                    title = LrView.bind('updateCheckStatus'),
+                    text_color = LrView.bind {
+                        key = 'updateAvailable',
+                        transform = function(value, fromTable)
+                            return value and LrColor("green") or LrColor("black")
+                        end,
+                    },
+                },
+            },
+            
+            f:spacer { height = 10 },
+            
+            f:row {
+                f:push_button {
+                    title = "Check for Updates",
+                    action = function()
+                        checkForUpdates(propertyTable)
+                    end,
+                },
+                
+                f:push_button {
+                    title = "Download Latest",
+                    enabled = LrView.bind('updateAvailable'),
+                    action = function()
+                        local url = propertyTable.latestVersionUrl or "https://github.com/manuzzi/LightroomClassicCarouselPlugin/releases/latest"
+                        LrHttp.openUrlInBrowser(url)
+                    end,
+                },
+            },
+            
+            f:spacer { height = 10 },
+            
+            f:static_text {
+                title = "The plugin can check for new versions on GitHub.\nClick 'Check for Updates' to see if a newer version is available.",
+                fill_horizontal = 1,
+                width_in_chars = 50,
+                height_in_lines = 2,
             },
         },
         
