@@ -391,8 +391,6 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
         {
             title = "Band & Frame Settings",
             synopsis = bind 'enableFrame',
-            bind_to_object = propertyTable,
-            visible = LrBinding.keyEquals('overflowHandling', 'addBands'),
             
             -- Row 1: Band Color with color_well and RGB fields
             f:row {
@@ -471,7 +469,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 
                 f:color_well {
                     value = bind 'frameColorWell',
-                    enabled = LrBinding.andAllKeys('seamlessMode', 'enableFrame'),
+                    enabled = LrBinding.andAllKeys('seamlessMode', LrBinding.keyEquals('overflowHandling', 'addBands'), 'enableFrame'),
                 },
                 
                 f:static_text {
@@ -525,7 +523,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                     min = 1,
                     max = 100,
                     precision = 0,
-                    enabled = LrBinding.andAllKeys('seamlessMode', 'enableFrame'),
+                    enabled = LrBinding.andAllKeys('seamlessMode', LrBinding.keyEquals('overflowHandling', 'addBands'), 'enableFrame'),
                 },
                 
                 f:static_text {
