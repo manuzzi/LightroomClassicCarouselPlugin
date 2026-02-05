@@ -195,13 +195,18 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
         return LrColor(r / 255, g / 255, b / 255)
     end
     
+    -- Helper function to round a number to the nearest integer
+    local function roundToInt(value)
+        return math.floor(value + 0.5)
+    end
+    
     -- Helper function to extract RGB values (0-255) from an LrColor object
     local function lrColorToRgb(color)
         if color and type(color) == "userdata" then
             -- LrColor returns values from 0.0 to 1.0
-            local r = math.floor(color:red() * 255 + 0.5)
-            local g = math.floor(color:green() * 255 + 0.5)
-            local b = math.floor(color:blue() * 255 + 0.5)
+            local r = roundToInt(color:red() * 255)
+            local g = roundToInt(color:green() * 255)
+            local b = roundToInt(color:blue() * 255)
             return r, g, b
         end
         return 255, 255, 255  -- Default to white
