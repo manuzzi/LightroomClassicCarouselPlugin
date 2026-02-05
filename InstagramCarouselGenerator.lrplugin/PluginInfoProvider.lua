@@ -337,8 +337,19 @@ local function checkForUpdates(propertyTable)
             end
             
             -- Parse JSON response manually (Lua doesn't have built-in JSON parser)
+            -- Extract fields more carefully to avoid matching wrong html_url
             local latestVersion = result:match('"tag_name"%s*:%s*"([^"]+)"')
-            local releaseUrl = result:match('"html_url"%s*:%s*"([^"]+)"')
+            
+            -- For html_url, match the one that's part of the release object (before assets_url)
+            -- We look for the pattern where html_url appears before "assets_url"
+            local htmlUrlPattern = '"html_url"%s*:%s*"(https://github%.com/[^"]+/releases/tag/[^"]+)"'
+            local releaseUrl = result:match(htmlUrlPattern)
+            
+            -- Fallback: try to find any release URL pattern
+            if not releaseUrl then
+                releaseUrl = result:match('"html_url"%s*:%s*"(https://github%.com/[^"]+)"')
+            end
+            
             local releaseName = result:match('"name"%s*:%s*"([^"]+)"')
             
             if not latestVersion then
@@ -380,7 +391,7 @@ local function checkForUpdates(propertyTable)
                 -- New version available
                 logger:info("New version available: " .. latestVersion)
                 if propertyTable then
-                    propertyTable.updateCheckStatus = "Update available: " .. latestVersion
+                    propertyTable.updateCheckStatus = "⬆ Update available: " .. latestVersion
                     propertyTable.updateAvailable = true
                     propertyTable.latestVersionUrl = releaseUrl
                 end
@@ -391,15 +402,15 @@ local function checkForUpdates(propertyTable)
                                   (releaseName and releaseName ~= "" and "Release: " .. releaseName .. "\n\n" or "") ..
                                   "Click OK to visit the download page."
                 
-                local result = LrDialogs.confirm(updateMsg, "Update Available", "OK", "Cancel")
-                if result == "ok" and releaseUrl then
+                local dialogResult = LrDialogs.confirm(updateMsg, "Update Available", "OK", "Cancel")
+                if dialogResult == "ok" and releaseUrl then
                     LrHttp.openUrlInBrowser(releaseUrl)
                 end
             else
                 -- Already up to date
                 logger:info("Plugin is up to date")
                 if propertyTable then
-                    propertyTable.updateCheckStatus = "You have the latest version (" .. currentVersionString .. ")"
+                    propertyTable.updateCheckStatus = "✓ You have the latest version (" .. currentVersionString .. ")"
                     propertyTable.updateAvailable = false
                 end
                 
@@ -438,11 +449,11 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             if currentVersion and latestVersionParsed then
                 local comparison = compareVersions(latestVersionParsed, currentVersion)
                 if comparison > 0 then
-                    propertyTable.updateCheckStatus = "Update available: " .. latestVersion
+                    propertyTable.updateCheckStatus = "⬆ Update available: " .. latestVersion
                     propertyTable.updateAvailable = true
                     propertyTable.latestVersionUrl = prefs.latestVersionUrl
                 else
-                    propertyTable.updateCheckStatus = "Up to date"
+                    propertyTable.updateCheckStatus = "✓ Up to date"
                     propertyTable.updateAvailable = false
                 end
             else
