@@ -482,10 +482,10 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             f:spacer { height = 10 },
             
             f:static_text {
-                title = "Instagram Carousel Generator helps you create seamless carousel posts for Instagram directly from Adobe Lightroom Classic.\n\nNew features: Aspect ratio presets, image splitting for panoramas, customizable bands and frames.",
+                title = "Instagram Carousel Generator helps you create seamless carousel posts for Instagram directly from Adobe Lightroom Classic.",
                 fill_horizontal = 1,
                 width_in_chars = 50,
-                height_in_lines = 4,
+                height_in_lines = 2,
             },
             
             f:spacer { height = 10 },
@@ -493,23 +493,6 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
             f:static_text {
                 title = "Version " .. versionString,
                 font = '<system/bold>',
-            },
-            
-            f:spacer { height = 10 },
-            
-            f:row {
-                f:static_text {
-                    title = "GitHub:",
-                    width = 60,
-                },
-                
-                f:static_text {
-                    title = "https://github.com/manuzzi/LightroomClassicCarouselPlugin",
-                    fill_horizontal = 1,
-                    mouse_down = function()
-                        LrHttp.openUrlInBrowser("https://github.com/manuzzi/LightroomClassicCarouselPlugin")
-                    end,
-                },
             },
         },
         
@@ -544,6 +527,7 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
                             return value and LrColor("green") or LrColor("black")
                         end,
                     },
+                    fill_horizontal = 1,
                 },
             },
             
@@ -565,15 +549,6 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
                         LrHttp.openUrlInBrowser(url)
                     end,
                 },
-            },
-            
-            f:spacer { height = 10 },
-            
-            f:static_text {
-                title = "The plugin can check for new versions on GitHub.\nClick 'Check for Updates' to see if a newer version is available.",
-                fill_horizontal = 1,
-                width_in_chars = 50,
-                height_in_lines = 2,
             },
         },
         
@@ -756,8 +731,6 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
                 width_in_chars = 50,
                 height_in_lines = isWindowsPlatform and 6 or 5,
             },
-            
-            f:spacer { height = 10 },
             
             f:row {
                 f:push_button {
