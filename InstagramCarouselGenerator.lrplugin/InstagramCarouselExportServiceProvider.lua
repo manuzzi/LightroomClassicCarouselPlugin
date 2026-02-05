@@ -391,6 +391,8 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
         {
             title = "Band & Frame Settings",
             synopsis = bind 'enableFrame',
+            bind_to_object = propertyTable,
+            visible = LrBinding.keyEquals('overflowHandling', 'addBands'),
             
             -- Row 1: Band Color with color_well and RGB fields
             f:row {
