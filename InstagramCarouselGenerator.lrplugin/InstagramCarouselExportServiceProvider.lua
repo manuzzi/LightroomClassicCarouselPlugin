@@ -20,6 +20,7 @@ local LrApplication = import 'LrApplication'
 local LrSystemInfo = import 'LrSystemInfo'
 local LrPrefs = import 'LrPrefs'
 local LrShell = import 'LrShell'
+local LrColor = import 'LrColor'
 
 -- Create a logger for this module
 local logger = LrLogger('InstagramCarouselExportService')
@@ -188,6 +189,53 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
     -- Initialize tile dimensions
     updateTileDimensions()
     
+    -- Helper function to create an LrColor from RGB values (0-255)
+    local function rgbToLrColor(r, g, b)
+        -- LrColor expects values from 0.0 to 1.0
+        return LrColor(r / 255, g / 255, b / 255)
+    end
+    
+    -- Helper function to extract RGB values (0-255) from an LrColor object
+    local function lrColorToRgb(color)
+        if color and type(color) == "userdata" then
+            -- LrColor returns values from 0.0 to 1.0
+            local r = math.floor(color:red() * 255 + 0.5)
+            local g = math.floor(color:green() * 255 + 0.5)
+            local b = math.floor(color:blue() * 255 + 0.5)
+            return r, g, b
+        end
+        return 255, 255, 255  -- Default to white
+    end
+    
+    -- Initialize color wells from current RGB values
+    propertyTable.bgColorWell = rgbToLrColor(
+        propertyTable.bgColorR or 255,
+        propertyTable.bgColorG or 255,
+        propertyTable.bgColorB or 255
+    )
+    
+    propertyTable.frameColorWell = rgbToLrColor(
+        propertyTable.frameColorR or 0,
+        propertyTable.frameColorG or 0,
+        propertyTable.frameColorB or 0
+    )
+    
+    -- Observer for Band color well: update RGB fields when color_well changes
+    propertyTable:addObserver('bgColorWell', function(props, key, value)
+        local r, g, b = lrColorToRgb(value)
+        props.bgColorR = r
+        props.bgColorG = g
+        props.bgColorB = b
+    end)
+    
+    -- Observer for Frame color well: update RGB fields when color_well changes
+    propertyTable:addObserver('frameColorWell', function(props, key, value)
+        local r, g, b = lrColorToRgb(value)
+        props.frameColorR = r
+        props.frameColorG = g
+        props.frameColorB = b
+    end)
+    
     return {
         {
             title = "Instagram Carousel Settings",
@@ -339,7 +387,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
             title = "Band & Frame Settings",
             synopsis = bind 'enableFrame',
             
-            -- Row 1: Band Color RGB sliders
+            -- Row 1: Band Color with color_well and RGB fields
             f:row {
                 spacing = f:control_spacing(),
                 
@@ -347,6 +395,11 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                     title = "Band Color:",
                     alignment = 'right',
                     width = share 'label_width',
+                },
+                
+                f:color_well {
+                    value = bind 'bgColorWell',
+                    enabled = LrBinding.andAllKeys('seamlessMode', LrBinding.keyEquals('overflowHandling', 'addBands')),
                 },
                 
                 f:static_text {
@@ -399,7 +452,7 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                 },
             },
             
-            -- Row 2: Frame Color RGB sliders and Frame size
+            -- Row 2: Frame Color with color_well, RGB fields, and Frame size
             f:row {
                 spacing = f:control_spacing(),
                 
@@ -407,6 +460,11 @@ function exportServiceProvider.sectionsForTopOfDialog(f, propertyTable)
                     title = "Frame Color:",
                     alignment = 'right',
                     width = share 'label_width',
+                },
+                
+                f:color_well {
+                    value = bind 'frameColorWell',
+                    enabled = LrBinding.andAllKeys('seamlessMode', 'enableFrame'),
                 },
                 
                 f:static_text {
