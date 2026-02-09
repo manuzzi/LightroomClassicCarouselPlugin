@@ -12,6 +12,8 @@ local LrPathUtils = import 'LrPathUtils'
 local LrFileUtils = import 'LrFileUtils'
 local LrFunctionContext = import 'LrFunctionContext'
 local LrTasks = import 'LrTasks'
+local LrView = import 'LrView'
+local LrColor = import 'LrColor'
 
 local function getVersionString()
     local version = _PLUGIN and _PLUGIN.VERSION
@@ -56,11 +58,48 @@ LrFunctionContext.callWithContext("showAboutDialog", function(context)
             end
         end
         
-        -- Show the dialog
+        -- Show the dialog with plugin icon
         local title = "About Instagram Carousel Generator"
         if versionString then
             title = title .. " (v" .. versionString .. ")"
         end
-        LrDialogs.message(title, aboutText, "info")
+        
+        local iconPath = LrPathUtils.child(pluginPath, "PluginIcon.png")
+        local f = LrView.osFactory()
+        
+        local contents = f:column {
+            spacing = f:control_spacing(),
+            f:row {
+                spacing = f:label_spacing(),
+                f:picture {
+                    value = iconPath,
+                    width = 64,
+                    height = 64,
+                },
+                f:column {
+                    spacing = f:control_spacing(),
+                    f:static_text {
+                        title = "Instagram Carousel Generator",
+                        font = '<system/bold>',
+                    },
+                    f:static_text {
+                        title = versionString and ("Version " .. versionString) or "",
+                    },
+                },
+            },
+            f:separator { fill_horizontal = 1 },
+            f:static_text {
+                title = aboutText,
+                width_in_chars = 60,
+                height_in_lines = 15,
+            },
+        }
+        
+        LrDialogs.presentModalDialog {
+            title = title,
+            contents = contents,
+            cancelVerb = "< exclude >",
+            actionVerb = "OK",
+        }
     end)
 end)

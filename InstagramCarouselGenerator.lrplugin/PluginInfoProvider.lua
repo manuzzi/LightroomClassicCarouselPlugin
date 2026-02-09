@@ -466,17 +466,17 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
         end
     end
     
-    -- Get the plugin logo path
-    local pluginPath = LrPathUtils.child(_PLUGIN.path, "ManuzziPhotoLogo.png")
+    -- Get the plugin icon path
+    local pluginIconPath = LrPathUtils.child(_PLUGIN.path, "PluginIcon.png")
     
     return {
         {
             title = "Instagram Carousel Generator",
             
             f:picture {
-                value = pluginPath,
-                width = 256,
-                height = 256,
+                value = pluginIconPath,
+                width = 128,
+                height = 128,
             },
             
             f:spacer { height = 10 },
@@ -554,6 +554,14 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
         
         {
             title = "Credits & Support",
+            
+            f:picture {
+                value = LrPathUtils.child(_PLUGIN.path, "ManuzziPhotoLogo.png"),
+                width = 128,
+                height = 128,
+            },
+            
+            f:spacer { height = 10 },
             
             f:row {
                 f:static_text {
