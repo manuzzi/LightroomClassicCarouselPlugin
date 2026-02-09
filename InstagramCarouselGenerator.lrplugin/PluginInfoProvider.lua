@@ -555,6 +555,14 @@ function pluginInfoProvider.sectionsForTopOfDialog(f, propertyTable)
         {
             title = "Credits & Support",
             
+            f:picture {
+                value = LrPathUtils.child(_PLUGIN.path, "ManuzziPhotoLogo.png"),
+                width = 128,
+                height = 128,
+            },
+            
+            f:spacer { height = 10 },
+            
             f:row {
                 f:static_text {
                     title = "Developed by:",
