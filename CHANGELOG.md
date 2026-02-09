@@ -2,6 +2,17 @@
 
 All notable changes to the Instagram Carousel Generator plugin will be documented in this file.
 
+## [1.5.2] - 2026-02-09
+
+### Added
+- Plugin icon placed in the Resources directory
+- Plugin icon displayed in the README, About dialog, and Plugin Manager
+- `LrPluginIcon` property in Info.lua for native Lightroom plugin icon support
+
+### Changed
+- About dialog now uses a custom modal with the plugin icon
+- Plugin Manager header uses the new plugin icon
+
 ## [1.5.0] - 2026-02-05
 
 ### Added

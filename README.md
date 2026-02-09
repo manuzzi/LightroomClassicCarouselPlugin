@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="Resources/PluginIcon.png" alt="Instagram Carousel Generator Icon" width="128" height="128">
+</p>
+
 # Instagram Carousel Generator for Lightroom Classic
 
 Adobe Lightroom Classic plugin for creating seamless Instagram carousel posts.
